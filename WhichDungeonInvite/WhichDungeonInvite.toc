@@ -1,4 +1,4 @@
-## Interface: 110000
+## Interface: 110207
 ## Title: WhichDungeonInvite
 ## Notes: Prints which dungeon you got invited to (Premade Groups / M+)
 ## Author: Slashik
