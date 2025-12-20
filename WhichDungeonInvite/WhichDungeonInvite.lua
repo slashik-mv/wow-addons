@@ -24,4 +24,3 @@ f:SetScript("OnEvent", function(self, event, resultID, newStatus, oldStatus, gro
 
   -- Register events
 f:RegisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")
-print("Hello, WhichDungeonInvite!")
