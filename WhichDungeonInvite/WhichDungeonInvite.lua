@@ -7,7 +7,6 @@ local function OnSearchResultUpdated(resultID, newStatus, groupName)
   if newStatus ~= "inviteaccepted" then return end
 
   local applicationInfo = C_LFGList.GetSearchResultInfo(resultID)
-  if not applicationInfo then return end
 
   local activityID = applicationInfo.activityID or (applicationInfo.activityIDs and applicationInfo.activityIDs[1])
   local activityName = activityID and C_LFGList.GetActivityFullName(activityID) or "Unknown activity"
