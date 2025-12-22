@@ -9,4 +9,4 @@ Collection of addons for World of Warcraft
 - CheckTalentsBeforeMplus: Simply check that you’re running the correct talent build before starting a Mythic+ run
 
 ## Ideas
-- TBD
+- Own resources bar?
