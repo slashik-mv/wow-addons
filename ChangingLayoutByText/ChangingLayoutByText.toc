@@ -1,0 +1,8 @@
+## Interface: 110207
+## Title: ChangingLayoutByText
+## Notes: Switching layouts from edit mode using predefined chat commands (e.g., /s normal activates the Normal layout)
+## Author: Slashik
+## Version: 1.0.0
+## IconTexture: Interface\AddOns\ChangingLayoutByText\addonIcon
+
+WhichDungeonInvite.lua
