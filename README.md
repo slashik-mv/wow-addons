@@ -6,7 +6,7 @@ Collection of addons for World of Warcraft
 - [ChangingLayoutByText](https://github.com/slashik-mv/wow-addons/blob/main/_release/ChangingLayoutByText.zip): Switch layouts from Edit Mode using predefined chat commands: `/l <layoutName>` or `/layout <layoutName>` (e.g., `/l normal` activates the Normal layout). You can list all available commands by using `/l help`
 
 ## Planned
-- *CheckTalentsBeforeMplus*: Simply check that you’re running the correct talent build before starting a Mythic+ run
+- *CheckTalentsBeforeMplusOrRaid*: Simply check that you’re running the correct talent build before starting a Mythic+ run or a raid
 
 ## Ideas
 - Own resources bar?
