@@ -1,8 +1,8 @@
 ## Interface: 110207
 ## Title: ChangingLayoutByText
-## Notes: Switch layouts from Edit Mode using predefined chat commands: /l <layoutName> or /layout <layoutName> (e.g., /l normal activates the Normal layout). You can list all available commands by using /l help
+## Notes: Switch layouts from Edit Mode using predefined chat commands: /l <layoutName> or /layout <layoutName> (e.g., /l normal activates the Normal layout). You can list all available commands by using /l help.
 ## Author: Slashik
-## Version: 1.0.0
+## Version: 1.1
 ## IconTexture: Interface\AddOns\ChangingLayoutByText\addonIcon
 
 ChangingLayoutByText.lua
