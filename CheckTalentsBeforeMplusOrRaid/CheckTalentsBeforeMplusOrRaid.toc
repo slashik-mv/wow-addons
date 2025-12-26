@@ -2,7 +2,7 @@
 ## Title: CheckTalentsBeforeMplusOrRaid
 ## Notes: Simply check that you’re running the correct talent build before starting a Mythic+ run or a raid
 ## Author: Slashik
-## Version: 1.0.0
+## Version: 1.1
 ## IconTexture: Interface\AddOns\CheckTalentsBeforeMplusOrRaid\addonIcon
 
 CheckTalentsBeforeMplusOrRaid.lua
