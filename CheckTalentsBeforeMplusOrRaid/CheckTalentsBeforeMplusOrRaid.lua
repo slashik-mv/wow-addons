@@ -4,8 +4,9 @@ local f = CreateFrame("Frame")
 f:RegisterEvent("READY_CHECK")
 
 local function ShowBigTextInCenter(msg, duration)
+    print(msg)
     -- creating frame for text
-    local frame = CreateFrame("FrameBigText", nil, UIParent)
+    local frame = CreateFrame("Frame", nil, UIParent)
     frame:SetSize(800, 200)
     frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
     frame:Hide()
@@ -47,9 +48,6 @@ end
 f:SetScript("OnEvent", function(_, event)       -- has to be called during some event because when game is still not fully loaded the PlayerUtil.GetCurrentSpecID() returns always 0
     
      if event == "READY_CHECK" and IsInMythicPlus() then
-        print("Ready check")
-        print("M+!!!!!")
-
         -- this should be loaded from addon settings
         local expectedLayoutBuildName = "m+"
 
@@ -60,14 +58,12 @@ f:SetScript("OnEvent", function(_, event)       -- has to be called during some 
         -- getting active layout talent build name
         local activeConfigID = C_ClassTalents.GetLastSelectedSavedConfigID(specID)
         local activeLayoutBuildName = C_Traits.GetConfigInfo(activeConfigID)
-        print("Active talent build:", activeLayoutBuildName.name)
 
         if expectedLayoutBuildName:lower() ~= activeLayoutBuildName.name:lower() then
             local msg = "WRONG TALENT BUILD: " .. activeLayoutBuildName.name
             print(msg)
             ShowBigTextInCenter(msg, 5)
         end
-
 
         -- -- all build layout names
         -- for _, configID in ipairs(C_ClassTalents.GetConfigIDsBySpecID(specID)) do
