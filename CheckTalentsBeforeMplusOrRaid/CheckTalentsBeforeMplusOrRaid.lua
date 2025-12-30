@@ -1,10 +1,7 @@
-print("Hello CheckTalentsBeforeMplusOrRaid!")
-
 local f = CreateFrame("Frame")
 f:RegisterEvent("READY_CHECK")
 
 local function ShowBigTextInCenter(msg, duration)
-    print(msg)
     -- creating frame for text
     local frame = CreateFrame("Frame", nil, UIParent)
     frame:SetSize(800, 200)
@@ -32,10 +29,8 @@ local function IsInMythicPlus()
     local inInstance, instanceType = IsInInstance()
     if not inInstance or instanceType ~= "party" then return false end
 
-    -- TEST
-    return true
-    -- local _, _, difficultyID = GetInstanceInfo()
-    -- return difficultyID == 8 or difficultyID == 23          -- 8 = Mythic+, 23 = Mythic
+    local _, _, difficultyID = GetInstanceInfo()
+    return difficultyID == 8 or difficultyID == 23          -- 8 = Mythic+, 23 = Mythic
 end
 
 local function IsInRaid()
@@ -44,39 +39,77 @@ local function IsInRaid()
     return true
 end
 
-
-f:SetScript("OnEvent", function(_, event)       -- has to be called during some event because when game is still not fully loaded the PlayerUtil.GetCurrentSpecID() returns always 0
-    
-     if event == "READY_CHECK" and IsInMythicPlus() then
-        -- this should be loaded from addon settings
-        local expectedLayoutBuildName = "m+"
-
-        -- getting spec id (specilization)
-        local specID = PlayerUtil.GetCurrentSpecID()
-        if specID == 0 then return end
-
-        -- getting active layout talent build name
-        local activeConfigID = C_ClassTalents.GetLastSelectedSavedConfigID(specID)
-        local activeLayoutBuildName = C_Traits.GetConfigInfo(activeConfigID)
-
-        if expectedLayoutBuildName:lower() ~= activeLayoutBuildName.name:lower() then
-            local msg = "WRONG TALENT BUILD: " .. activeLayoutBuildName.name
-            print(msg)
-            ShowBigTextInCenter(msg, 5)
+local function checkLayoutName(allowedBuildNames, activeBuildName)
+    for _, v in ipairs(allowedBuildNames) do
+        if string.find(activeBuildName:lower(), v:lower(), 1, true) then
+            return true
         end
+    end
+    return false
+end
 
-        -- -- all build layout names
-        -- for _, configID in ipairs(C_ClassTalents.GetConfigIDsBySpecID(specID)) do
-        --     local info = C_Traits.GetConfigInfo(configID)
-        --     if info then
-        --         print(("Talent build: %s (configID=%d)"):format(info.name, configID))
-        --     end
-        -- end
-        -- -- all build layout names
+local function getActiveLayoutBuildName()
+    -- getting spec id (specilization)
+    local specID = PlayerUtil.GetCurrentSpecID()
+    if specID == 0 then return end
+
+    -- getting active layout talent build name
+    local activeConfigID = C_ClassTalents.GetLastSelectedSavedConfigID(specID)
+    local activeLayoutBuildName = C_Traits.GetConfigInfo(activeConfigID)
+
+    return activeLayoutBuildName.name
+
+    -- -- all build layout names
+    -- for _, configID in ipairs(C_ClassTalents.GetConfigIDsBySpecID(specID)) do
+    --     local info = C_Traits.GetConfigInfo(configID)
+    --     if info then
+    --         print(("Talent build: %s (configID=%d)"):format(info.name, configID))
+    --     end
+    -- end
+    -- -- all build layout names
+end
+
+local function printWarning(activeBuildName)
+    local msg = "WRONG TALENT BUILD: " .. activeBuildName
+    print(msg)
+    ShowBigTextInCenter(msg, 7)
+end
+
+f:SetScript("OnEvent", function(_, event)
+    
+     if event == "READY_CHECK" then
+        if IsInMythicPlus() then
+
+            -- list of the correct substrings
+            local allowedBuildNames = {
+                "m+",
+                "m +",
+                "mplus",
+                "m plus",
+                "mythic+",
+                "mythic +",
+                "mythicplus",
+                "mythic plus"
+            }
+
+            local activeBuildName = getActiveLayoutBuildName()
         
-    elseif event == "READY_CHECK" and IsInRaid() then
-        print("raid - in progress")
-        -- in progress 
-     end
+            if not checkLayoutName(allowedBuildNames, activeBuildName) then
+                printWarning(activeBuildName)
+            end
 
+        elseif IsInRaid() then
+
+            -- list of the correct substrings
+            local allowedBuildNames = {
+                "raid"
+            }
+
+            local activeBuildName = getActiveLayoutBuildName()
+        
+            if not checkLayoutName(allowedBuildNames, activeBuildName) then
+                printWarning(activeBuildName)
+            end
+        end
+     end
 end)
