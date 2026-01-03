@@ -1,3 +1,6 @@
+local MyAddon = _G.MyAddon
+local S = MyAddon.Settings
+
 local f = CreateFrame("Frame")
 f:RegisterEvent("READY_CHECK")
 
@@ -78,7 +81,7 @@ end
 f:SetScript("OnEvent", function(_, event)
     
      if event == "READY_CHECK" then
-        if IsInMythicPlus() then
+        if IsInMythicPlus() and S:Get("enabledM") == true then
 
             -- list of the correct substrings
             local allowedBuildNames = {
@@ -98,7 +101,7 @@ f:SetScript("OnEvent", function(_, event)
                 printWarning(activeBuildName)
             end
 
-        elseif IsInRaid() then
+        elseif IsInRaid() and S:Get("enabledRaid") then
 
             -- list of the correct substrings
             local allowedBuildNames = {
