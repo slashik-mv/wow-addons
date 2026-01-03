@@ -101,7 +101,7 @@ f:SetScript("OnEvent", function(_, event)
                 printWarning(activeBuildName)
             end
 
-        elseif IsInRaid() and S:Get("enabledRaid") then
+        elseif IsInRaid() and S:Get("enabledRaid") == true then
 
             -- list of the correct substrings
             local allowedBuildNames = {
