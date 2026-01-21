@@ -1,8 +1,0 @@
-## Interface: 110207
-## Title: WhichDungeonInvite
-## Notes: Prints which dungeon you got invited to (Premade Groups / M+)
-## Author: Slashik
-## Version: 1.0.1
-## IconTexture: Interface\AddOns\WhichDungeonInvite\addonIcon
-
-WhichDungeonInvite.lua

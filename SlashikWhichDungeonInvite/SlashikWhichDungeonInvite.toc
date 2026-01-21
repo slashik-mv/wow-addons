@@ -1,0 +1,8 @@
+## Interface: 120000
+## Title: SlashikWhichDungeonInvite
+## Notes: Prints which dungeon you got invited to (Premade Groups / M+)
+## Author: Slashik
+## Version: 1.2
+## IconTexture: Interface\AddOns\SlashikWhichDungeonInvite\addonIcon
+
+SlashikWhichDungeonInvite.lua

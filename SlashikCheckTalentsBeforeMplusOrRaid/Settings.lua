@@ -5,7 +5,7 @@ _G.MyAddon = MyAddon
 MyAddon.Settings = MyAddon.Settings or {}
 local S = MyAddon.Settings
 
-local DB_NAME = "CheckTalentsBeforeMplusOrRaidDB"
+local DB_NAME = "SlashikCheckTalentsBeforeMplusOrRaidDB"
 
 local DEFAULTS = {
   enabledM = true,
