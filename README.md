@@ -7,6 +7,8 @@ Collection of addons for World of Warcraft
 - [SlashikCheckTalentsBeforeMplusOrRaid](https://github.com/slashik-mv/wow-addons/blob/main/_release/SlashikCheckTalentsBeforeMplusOrRaid.zip): automatically checks your talent build when a Ready Check starts in a dungeon or raid. If your active build name doesn’t include the expected keywords (for example “mythic+”, “m+”, “mplus” for Mythic+ or “raid” for raids), it shows a large on-screen warning and a chat message so you can switch builds before the pull.
 
 ## Planned
+- Make the player's arrow on the world map more visible.
+- Make some automation for hi and bye joining party or raid.
 
 ## Ideas
 - Own resources bar?
