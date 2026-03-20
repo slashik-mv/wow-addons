@@ -8,6 +8,7 @@ Collection of addons for World of Warcraft
 
 ## Planned
 - Make the player's arrow on the world map more visible.
+- Battle potion reminder for m+ and raid.
 - Make some automation for hi and bye joining party or raid.
 
 ## Ideas
