@@ -77,9 +77,7 @@ local function getActiveLayoutBuildName()
     --     end
     -- end
     -- -- all build layout names
-end
-
-local 
+end 
 
 local function printWarning(activeBuildName)
     local msg = "WRONG TALENT BUILD: " .. activeBuildName
