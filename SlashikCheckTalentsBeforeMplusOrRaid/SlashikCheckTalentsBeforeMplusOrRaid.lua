@@ -3,6 +3,7 @@ local S = MyAddon.Settings
 
 local f = CreateFrame("Frame")
 f:RegisterEvent("READY_CHECK")
+f:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 
 local function ShowBigTextInCenter(msg, duration)
     -- creating frame for text
@@ -42,6 +43,12 @@ local function IsInRaid()
     return true
 end
 
+local function IsInDelve()
+    local inInstance, instanceType = IsInInstance()
+    if instanceType ~= "scenario" then return false end
+    return true
+end
+
 local function checkLayoutName(allowedBuildNames, activeBuildName)
     for _, v in ipairs(allowedBuildNames) do
         if string.find(activeBuildName:lower(), v:lower(), 1, true) then
@@ -71,6 +78,8 @@ local function getActiveLayoutBuildName()
     -- end
     -- -- all build layout names
 end
+
+local 
 
 local function printWarning(activeBuildName)
     local msg = "WRONG TALENT BUILD: " .. activeBuildName
@@ -114,5 +123,21 @@ f:SetScript("OnEvent", function(_, event)
                 printWarning(activeBuildName)
             end
         end
+
+    elseif event == "ZONE_CHANGED_NEW_AREA" then
+
+        if IsInDelve() and S:Get("enabledDelve") == true then 
+            
+            -- list of the correct substrings
+            local allowedBuildNames = {
+                "delve"
+            }
+            local activeBuildName = getActiveLayoutBuildName()
+        
+            if not checkLayoutName(allowedBuildNames, activeBuildName) then
+                printWarning(activeBuildName)
+            end
+        end
      end
+
 end)

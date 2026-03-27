@@ -10,6 +10,7 @@ local DB_NAME = "SlashikCheckTalentsBeforeMplusOrRaidDB"
 local DEFAULTS = {
   enabledM = true,
   enabledRaid = true,
+  enabledDelve = true,
 }
 
 local function CopyDefaults(src, dst)
@@ -75,6 +76,7 @@ local function RegisterSettingsUI()
   -- Settings
   AddCheckbox("enabledM", "Enable for M+", "Turns the warning on/off for M+")
   AddCheckbox("enabledRaid", "Enable for Raid", "Turns the warning on/off for Raid")
+  AddCheckbox("enabledDelve", "Enable for Delve", "Turns the warning on/off for Delve")
 end
 
 -- Init when addon loads
