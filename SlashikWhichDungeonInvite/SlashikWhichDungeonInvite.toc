@@ -1,8 +1,8 @@
 ## Interface: 120000
 ## Title: SlashikWhichDungeonInvite
-## Notes: Prints which dungeon you got invited to (Premade Groups / M+)
+## Notes: Prints which dungeon you were invited to (Premade Groups / M+) in the chat and in the middle of your screen.
 ## Author: Slashik
-## Version: 1.2
+## Version: 1.3
 ## IconTexture: Interface\AddOns\SlashikWhichDungeonInvite\addonIcon
 
 SlashikWhichDungeonInvite.lua

@@ -1,6 +1,35 @@
 -- Create a frame
 local f = CreateFrame("Frame")
 
+local function ShowBigTextInCenter(msg, duration)
+    -- creating frame for text
+    local frame = CreateFrame("Frame", nil, UIParent)
+    frame:SetSize(800, 200)
+    frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    frame:Hide()
+
+    -- setting text object
+    local text = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
+    text:SetPoint("CENTER")
+    text:SetText(msg)
+
+    -- custom size of text
+    local font, _, flags = text:GetFont()
+    text:SetFont(font, 60, flags)
+
+    frame.text = text
+    frame:Show()
+
+    C_Timer.After(duration or 10, function()
+        frame:Hide()
+    end)
+end
+
+local function printWarning(msg)
+    print("►►► " .. msg)
+    ShowBigTextInCenter(msg, 7)
+end
+
 local function OnSearchResultUpdated(resultID, newStatus, groupName)
   if not resultID then return end
 
@@ -11,7 +40,7 @@ local function OnSearchResultUpdated(resultID, newStatus, groupName)
   local activityID = applicationInfo.activityID or (applicationInfo.activityIDs and applicationInfo.activityIDs[1])
   local activityName = activityID and C_LFGList.GetActivityFullName(activityID) or "Unknown activity"
 
-  print("►►► Group Name: " .. activityName .. ": " .. (groupName or applicationInfo.name or ""))
+  printWarning("Group Name: " .. activityName .. ": " .. (groupName or applicationInfo.name or ""))
 end
 
   -- Set the OnEvent script handler 
