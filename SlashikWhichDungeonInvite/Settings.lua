@@ -8,7 +8,8 @@ local S = MyAddon.Settings
 local DB_NAME = "SlashikWhichDungeonInviteDB"
 
 local DEFAULTS = {
-  enabledScreenWarning = true
+  enabledScreenWarning = true,
+  enabledHI = false
 }
 
 local function CopyDefaults(src, dst)
@@ -73,6 +74,7 @@ local function RegisterSettingsUI()
 
   -- Settings
   AddCheckbox("enabledScreenWarning", "Enable screen warning", "Turns the warning on/off for middle of the screen")
+  AddCheckbox("enabledHI", "Enable Greetings", "Turns the automaticaly saying Greetings, travelers! to party or raid chat")
 end
 
 -- Init when addon loads

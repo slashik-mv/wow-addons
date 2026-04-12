@@ -35,6 +35,24 @@ local function printWarning(msg)
     end
 end
 
+
+local function SendGreetingToGroup()
+    local message = "Greetings, travelers!"
+    local channel
+
+    if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
+        channel = "INSTANCE_CHAT"
+    elseif IsInRaid() then
+        channel = "RAID"
+    elseif IsInGroup() then
+        channel = "PARTY"
+    end
+
+    if channel then
+        SendChatMessage(message, channel)
+    end
+end
+
 local function OnSearchResultUpdated(resultID, newStatus, groupName)
   if not resultID then return end
 
@@ -46,6 +64,11 @@ local function OnSearchResultUpdated(resultID, newStatus, groupName)
   local activityName = activityID and C_LFGList.GetActivityFullName(activityID) or "Unknown activity"
 
   printWarning(activityName .. ": " .. (groupName or applicationInfo.name or ""))
+
+  if S:Get("enabledScreenWarning") == true then
+    -- small delay so the group channel is fully available
+    C_Timer.After(1, SendGreetingToGroup)
+  end
 end
 
   -- Set the OnEvent script handler 
