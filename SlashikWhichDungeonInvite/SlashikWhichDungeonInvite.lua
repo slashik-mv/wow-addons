@@ -1,3 +1,6 @@
+local MyAddon = _G.MyAddon
+local S = MyAddon.Settings
+
 -- Create a frame
 local f = CreateFrame("Frame")
 
@@ -26,8 +29,10 @@ local function ShowBigTextInCenter(msg, duration)
 end
 
 local function printWarning(msg)
-    print("►►► " .. msg)
-    ShowBigTextInCenter(msg, 7)
+    print("►►► Group Name: " .. msg)
+    if S:Get("enabledScreenWarning") == true then
+      ShowBigTextInCenter(msg, 7)
+    end
 end
 
 local function OnSearchResultUpdated(resultID, newStatus, groupName)
@@ -40,7 +45,7 @@ local function OnSearchResultUpdated(resultID, newStatus, groupName)
   local activityID = applicationInfo.activityID or (applicationInfo.activityIDs and applicationInfo.activityIDs[1])
   local activityName = activityID and C_LFGList.GetActivityFullName(activityID) or "Unknown activity"
 
-  printWarning("Group Name: " .. activityName .. ": " .. (groupName or applicationInfo.name or ""))
+  printWarning(activityName .. ": " .. (groupName or applicationInfo.name or ""))
 end
 
   -- Set the OnEvent script handler 
