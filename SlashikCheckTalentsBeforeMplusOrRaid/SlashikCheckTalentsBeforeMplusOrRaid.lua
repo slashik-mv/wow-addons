@@ -1,5 +1,5 @@
-local MyAddon = _G.MyAddon
-local S = MyAddon.Settings
+local SlashikCheckTalentsBeforeMplusOrRaidAddon = _G.SlashikCheckTalentsBeforeMplusOrRaidAddon
+local S = SlashikCheckTalentsBeforeMplusOrRaidAddon.Settings
 
 local f = CreateFrame("Frame")
 f:RegisterEvent("READY_CHECK")
@@ -86,10 +86,9 @@ local function printWarning(activeBuildName)
 end
 
 f:SetScript("OnEvent", function(_, event)
-    
+
      if event == "READY_CHECK" then
         if IsInMythicPlus() and S:Get("enabledM") == true then
-
             -- list of the correct substrings
             local allowedBuildNames = {
                 "m+",

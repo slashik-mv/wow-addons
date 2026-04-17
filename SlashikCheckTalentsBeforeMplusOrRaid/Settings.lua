@@ -1,9 +1,9 @@
 local ADDON_NAME = ...
-local MyAddon = _G.MyAddon or {}
-_G.MyAddon = MyAddon
+local SlashikCheckTalentsBeforeMplusOrRaidAddon = _G.SlashikCheckTalentsBeforeMplusOrRaidAddon or {}
+_G.SlashikCheckTalentsBeforeMplusOrRaidAddon = SlashikCheckTalentsBeforeMplusOrRaidAddon
 
-MyAddon.Settings = MyAddon.Settings or {}
-local S = MyAddon.Settings
+SlashikCheckTalentsBeforeMplusOrRaidAddon.Settings = SlashikCheckTalentsBeforeMplusOrRaidAddon.Settings or {}
+local S = SlashikCheckTalentsBeforeMplusOrRaidAddon.Settings
 
 local DB_NAME = "SlashikCheckTalentsBeforeMplusOrRaidDB"
 
