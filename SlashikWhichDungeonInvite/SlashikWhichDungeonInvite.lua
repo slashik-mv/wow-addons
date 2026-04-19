@@ -1,5 +1,5 @@
-local MyAddon = _G.MyAddon
-local S = MyAddon.Settings
+local SlashikWhichDungeonInviteAddon = _G.SlashikWhichDungeonInviteAddon
+local S = SlashikWhichDungeonInviteAddon.Settings
 
 -- Create a frame
 local f = CreateFrame("Frame")

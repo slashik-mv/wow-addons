@@ -1,9 +1,9 @@
 local ADDON_NAME = ...
-local MyAddon = _G.MyAddon or {}
-_G.MyAddon = MyAddon
+local SlashikWhichDungeonInviteAddon = _G.SlashikWhichDungeonInviteAddon or {}
+_G.SlashikWhichDungeonInviteAddon = SlashikWhichDungeonInviteAddon
 
-MyAddon.Settings = MyAddon.Settings or {}
-local S = MyAddon.Settings
+SlashikWhichDungeonInviteAddon.Settings = SlashikWhichDungeonInviteAddon.Settings or {}
+local S = SlashikWhichDungeonInviteAddon.Settings
 
 local DB_NAME = "SlashikWhichDungeonInviteDB"
 
