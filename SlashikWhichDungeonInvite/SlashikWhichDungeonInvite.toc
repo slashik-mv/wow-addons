@@ -1,8 +1,8 @@
-## Interface: 120000
+## Interface: 120005
 ## Title: SlashikWhichDungeonInvite
 ## Notes: Prints which dungeon you were invited to (Premade Groups / M+) in the chat and in the middle of your screen (can be turn on/off in settings). Support of automatic greetings when joining a party or raid.
 ## Author: Slashik
-## Version: 1.6
+## Version: 1.7
 ## IconTexture: Interface\AddOns\SlashikWhichDungeonInvite\addonIcon
 
 Settings.lua

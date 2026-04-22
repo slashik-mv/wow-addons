@@ -1,8 +1,8 @@
-## Interface: 120000
+## Interface: 120005
 ## Title: SlashikChangingLayoutByText
 ## Notes: Switch layouts from Edit Mode using predefined chat commands: /l <layoutName> or /layout <layoutName> (e.g., /l normal activates the Normal layout). You can list all available commands by using /l help.
 ## Author: Slashik
-## Version: 1.2
+## Version: 1.3
 ## IconTexture: Interface\AddOns\SlashikChangingLayoutByText\addonIcon
 
 SlashikChangingLayoutByText.lua
