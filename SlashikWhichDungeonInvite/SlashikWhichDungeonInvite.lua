@@ -65,7 +65,7 @@ local function OnSearchResultUpdated(resultID, newStatus, groupName)
 
   printWarning(activityName .. ": " .. (groupName or applicationInfo.name or ""))
 
-  if S:Get("enabledScreenWarning") == true then
+  if S:Get("enabledHI") == true then
     -- small delay so the group channel is fully available
     C_Timer.After(1, SendGreetingToGroup)
   end
