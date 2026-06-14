@@ -67,7 +67,7 @@ local function OnSearchResultUpdated(resultID, newStatus, groupName)
 
   if S:Get("enabledHI") == true then
     -- small delay so the group channel is fully available
-    C_Timer.After(1, SendGreetingToGroup)
+    C_Timer.After(3, SendGreetingToGroup)
   end
 end
 
