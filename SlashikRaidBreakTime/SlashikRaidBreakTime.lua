@@ -3,17 +3,16 @@ local ADDON_PREFIX = "SRBT"
 local images = SlashikRaidBreakTimeImages
 
 local frame = CreateFrame("Frame", "SlashikRaidBreakTimeFrame", UIParent, "BackdropTemplate")
-frame:SetSize(560, 230)
-frame:SetPoint("CENTER", UIParent, "CENTER", 0, 150)
+frame:SetSize(500, 270)
+frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
 frame:SetFrameStrata("HIGH")
 frame:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark" })
 frame:SetBackdropColor(0, 0, 0, 0.82)
 frame:Hide()
 
 frame.art = frame:CreateTexture(nil, "ARTWORK")
-frame.art:SetSize(210, 210)
+frame.art:SetSize(250, 250)
 frame.art:SetPoint("LEFT", 10, 0)
-frame.art:SetTexCoord(0.02, 0.98, 0.02, 0.98)
 
 frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
 frame.title:SetPoint("TOPLEFT", frame.art, "TOPRIGHT", 28, -42)
