@@ -9,9 +9,6 @@ Collection of addons for World of Warcraft
 
 ## Planned
 - Make the player's arrow on the world map more visible.
-- Battle potion reminder for m+ and raid.
-- Bouncing spells like the old WA's?
-- Make some automation for hi and bye joining party or raid.
 
 ## Ideas
 - Own resources bar?
