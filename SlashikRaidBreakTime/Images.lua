@@ -19,4 +19,7 @@ SlashikRaidBreakTimeImages = {
     imageFolder .. "varanus-break.tga",
     imageFolder .. "chickenwing-break.tga",
     imageFolder .. "padonk-break.tga",
+    imageFolder .. "wixxie-break.tga",
+    imageFolder .. "shocktopuss-break.tga",
+    imageFolder .. "miztaxih-break.tga",
 }
