@@ -39,10 +39,36 @@ local function formatTime(seconds)
     return string.format("%02d:%02d", math.floor(seconds / 60), seconds % 60)
 end
 
+local function hideBreak()
+    endTime = 0
+    if SlashikRaidBreakTimeDB then
+        SlashikRaidBreakTimeDB.activeBreak = nil
+    end
+    frame:Hide()
+end
+
 local function showBreak(seconds, imageIndex)
+    SlashikRaidBreakTimeDB = SlashikRaidBreakTimeDB or {}
+    imageIndex = imageIndex or 1
     endTime = GetTime() + seconds
     frame.art:SetTexture(images[imageIndex] or images[1])
+    SlashikRaidBreakTimeDB.activeBreak = {
+        endAt = GetServerTime() + seconds,
+        imageIndex = imageIndex,
+    }
     frame:Show()
+end
+
+local function restoreBreak()
+    local activeBreak = SlashikRaidBreakTimeDB.activeBreak
+    if not activeBreak or type(activeBreak.endAt) ~= "number" then return end
+
+    local remaining = activeBreak.endAt - GetServerTime()
+    if remaining > 0 then
+        showBreak(remaining, activeBreak.imageIndex)
+    else
+        SlashikRaidBreakTimeDB.activeBreak = nil
+    end
 end
 
 local function showCompatibleBreak(seconds)
@@ -50,7 +76,7 @@ local function showCompatibleBreak(seconds)
     if seconds and seconds > 0 and seconds <= 3600 then
         showBreak(seconds, math.random(#images))
     elseif seconds == 0 then
-        frame:Hide()
+        hideBreak()
     end
 end
 
@@ -59,7 +85,7 @@ frame:SetScript("OnUpdate", function(_, elapsed)
     local remaining = endTime - GetTime()
     frame.timer:SetText(formatTime(remaining))
     if remaining <= 0 then
-        frame:Hide()
+        hideBreak()
     end
 end)
 
@@ -118,7 +144,7 @@ local function registerBigWigsCompatibility()
         showCompatibleBreak(seconds)
     end)
     loader.RegisterMessage(addonName, "BigWigs_StopBreak", function()
-        frame:Hide()
+        hideBreak()
     end)
 end
 
@@ -148,9 +174,11 @@ events:RegisterEvent("PLAYER_LOGIN")
 events:RegisterEvent("CHAT_MSG_ADDON")
 events:SetScript("OnEvent", function(_, event, prefix, message, channel, sender)
     if event == "PLAYER_LOGIN" then
+        SlashikRaidBreakTimeDB = SlashikRaidBreakTimeDB or {}
         C_ChatInfo.RegisterAddonMessagePrefix(ADDON_PREFIX)
         C_ChatInfo.RegisterAddonMessagePrefix("D5")
         registerBigWigsCompatibility()
+        restoreBreak()
         print("|cff55ddffSlashik Raid Break Time loaded. Use /srb <minutes>.|r")
         return
     end
@@ -174,7 +202,7 @@ SlashCmdList.SLASHIKRAIDBREAKTIME = function(input)
     local command, value = input:match("^(%S*)%s*(.-)$")
     command = command:lower()
     if command == "hide" or command == "stop" then
-        frame:Hide()
+        hideBreak()
     elseif command == "test" then
         showBreak(300, math.random(#images))
     else
