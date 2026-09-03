@@ -155,12 +155,12 @@ local function startBreak(minutes)
     end
 
     if not minutes then
-        print("|cffffcc00Usage: /srb <minutes>  (from 1 to 120)|r")
+        print("|cffffcc00Usage: /break <minutes>  (from 1 to 120)|r")
         return
     end
     local seconds = math.floor(minutes * 60)
     if seconds < 60 or seconds > 7200 then
-        print("|cffffcc00Usage: /srb <minutes>  (from 1 to 120)|r")
+        print("|cffffcc00Usage: /break <minutes>  (from 1 to 120)|r")
         return
     end
 
@@ -179,7 +179,7 @@ events:SetScript("OnEvent", function(_, event, prefix, message, channel, sender)
         C_ChatInfo.RegisterAddonMessagePrefix("D5")
         registerBigWigsCompatibility()
         restoreBreak()
-        print("|cff55ddffSlashik Raid Break Time loaded. Use /srb <minutes>.|r")
+        print("|cff55ddffSlashik Raid Break Time loaded. Use /break <minutes>.|r")
         return
     end
 
@@ -195,9 +195,7 @@ events:SetScript("OnEvent", function(_, event, prefix, message, channel, sender)
     end
 end)
 
-SLASH_SLASHIKRAIDBREAKTIME1 = "/srb"
-SLASH_SLASHIKRAIDBREAKTIME2 = "/slashikbreak"
-SLASH_SLASHIKRAIDBREAKTIME3 = "/break"
+SLASH_SLASHIKRAIDBREAKTIME1 = "/break"
 SlashCmdList.SLASHIKRAIDBREAKTIME = function(input)
     local command, value = input:match("^(%S*)%s*(.-)$")
     command = command:lower()
