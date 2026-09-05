@@ -1,0 +1,48 @@
+SlashikChangingLayoutPullMessages = {
+    "Alright everyone, please remember that dying is completely optional.",
+    "Welcome to Mythic+, where the timer is our enemy and the healer is our therapist.",
+    "May our interrupts be fast, our dodges be clean, and our confidence completely unjustified.",
+    "Remember, if something goes wrong, we were simply testing an alternative strategy.",
+    "Everyone ready? Good, because I have absolutely no idea what's about to happen.",
+    "Remember, we're not wiping. We're strategically visiting the graveyard.",
+    "May the healer have enough mana to survive whatever nonsense we're about to do.",
+
+    "Alright, prepare yourselves. The next thirty minutes may contain emotional damage.",
+    "May our deaths be few, our loot be plentiful, and our excuses believable.",
+
+    "Remember, mistakes are just undocumented mechanics that we haven't mastered yet.",
+
+    "Let's go in there and prove that gear score is more important than knowing mechanics.",
+
+    "Remember, if you don't know what's happening, just follow the person who looks confident.",
+    "Alright everyone, good luck. Try not to make you regret inviting me.",
+
+    "Please remember that every mechanic has a solution, and standing in it is usually not that solution.",
+
+    "The plan is simple: pull the mobs, press the buttons, avoid the floor, and blame the nearest person.",
+
+    "Everyone stay focused. There will be plenty of time to panic once the timer starts running out.",
+
+    "Alright, remember your role: tanks get hit, healers complain, and DPS somehow pull aggro.",
+
+
+
+
+    "Remember, if you accidentally pull something, simply say 'intentional' with enough confidence and nobody can prove otherwise.",
+
+
+
+    "Good luck everyone. If this goes badly, remember that we were never here and screenshots are considered fake news.",
+
+    "Welcome everyone! Today’s entertainment includes dangerous monsters, unnecessary explosions, five highly qualified adventurers, and absolutely no refunds once the key goes in.",
+    "Welcome aboard everyone! I’ll be your tank for today’s journey. Emergency exits are located at the entrance, healer complaints go directly to management, and management is currently offline.",
+    "Alright friends, let’s have some fun. Kill the bad things, save the good people, collect shiny loot, and most importantly look incredibly professional whenever somebody is watching.",
+    "Welcome to tonight’s Mythic+ experience! Please relax, enjoy the scenery, and remember that screaming at your monitor technically counts as communication.",
+    "Welcome everyone! For the next 30 minutes we’re officially a family. A slightly dysfunctional family that communicates mostly through interrupts and jumping, but a family nonetheless.",
+    "Welcome to the group! Coffee is on the left, cookies are on the right, and somewhere ahead of us is a boss carrying absolutely nothing any of us actually need.",
+    "Ladies and gentlemen, thank you for choosing Slashik Tours. Today’s package includes sightseeing, monster removal, several near-death experiences, and approximately 37 gold worth of loot.",
+    "Welcome friends! May your crits be huge, your loot be useful, your vault be generous, and every piece that drops for me have the correct secondary stats.",
+    "Alright everyone, let’s have fun. If you make a mistake, don’t worry — just jump twice. That’s the universal WoW signal for ‘everything is completely under control.’",
+    "Welcome aboard Slashik Express! Next stop: glorious victory. Intermediate stops may include panic, confusion, accidental extra trash, and one suspiciously long healer drinking break.",
+    "Alright team, today’s motivational speech is very simple: we’re five nerds with expensive computers fighting dragons on a Saturday night. Life is good. Let’s go.",
+}

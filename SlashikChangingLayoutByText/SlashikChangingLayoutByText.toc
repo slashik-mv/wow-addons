@@ -1,8 +1,10 @@
-## Interface: 120005
+## Interface: 120100
 ## Title: SlashikChangingLayoutByText
-## Notes: Switch layouts from Edit Mode using predefined chat commands: /l <layoutName> or /layout <layoutName> (e.g., /l normal activates the Normal layout). You can list all available commands by using /l help.
+## Notes: Switch Edit Mode layouts with /l <layout> or /layout <layout>. Use /l <seconds> (for example, /l 10) to say a random dungeon message and start a pull countdown. Use /l msg for a random dungeon message or /l rmsg for a random raid message, without a countdown. Type /l help to list available commands and layouts.
 ## Author: Slashik
-## Version: 1.3
+## Version: 1.7
 ## IconTexture: Interface\AddOns\SlashikChangingLayoutByText\addonIcon
 
+PullMessages.lua
+RaidMessages.lua
 SlashikChangingLayoutByText.lua
