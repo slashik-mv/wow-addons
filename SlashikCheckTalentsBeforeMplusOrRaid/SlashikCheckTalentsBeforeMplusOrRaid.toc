@@ -1,8 +1,8 @@
-## Interface: 120005
+## Interface: 120100
 ## Title: SlashikCheckTalentsBeforeMplusOrRaid
 ## Notes: Simply check that you’re running the correct talent build before starting a Mythic+ run, a raid or a delve
 ## Author: Slashik
-## Version: 1.7
+## Version: 1.8
 ## IconTexture: Interface\AddOns\SlashikCheckTalentsBeforeMplusOrRaid\addonIcon
 ## SavedVariables: SlashikCheckTalentsBeforeMplusOrRaidDB
 
