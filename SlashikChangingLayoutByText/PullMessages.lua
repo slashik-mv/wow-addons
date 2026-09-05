@@ -6,34 +6,18 @@ SlashikChangingLayoutPullMessages = {
     "Everyone ready? Good, because I have absolutely no idea what's about to happen.",
     "Remember, we're not wiping. We're strategically visiting the graveyard.",
     "May the healer have enough mana to survive whatever nonsense we're about to do.",
-
     "Alright, prepare yourselves. The next thirty minutes may contain emotional damage.",
     "May our deaths be few, our loot be plentiful, and our excuses believable.",
-
     "Remember, mistakes are just undocumented mechanics that we haven't mastered yet.",
-
     "Let's go in there and prove that gear score is more important than knowing mechanics.",
-
     "Remember, if you don't know what's happening, just follow the person who looks confident.",
     "Alright everyone, good luck. Try not to make you regret inviting me.",
-
     "Please remember that every mechanic has a solution, and standing in it is usually not that solution.",
-
     "The plan is simple: pull the mobs, press the buttons, avoid the floor, and blame the nearest person.",
-
     "Everyone stay focused. There will be plenty of time to panic once the timer starts running out.",
-
     "Alright, remember your role: tanks get hit, healers complain, and DPS somehow pull aggro.",
-
-
-
-
     "Remember, if you accidentally pull something, simply say 'intentional' with enough confidence and nobody can prove otherwise.",
-
-
-
     "Good luck everyone. If this goes badly, remember that we were never here and screenshots are considered fake news.",
-
     "Welcome everyone! Today’s entertainment includes dangerous monsters, unnecessary explosions, five highly qualified adventurers, and absolutely no refunds once the key goes in.",
     "Welcome aboard everyone! I’ll be your tank for today’s journey. Emergency exits are located at the entrance, healer complaints go directly to management, and management is currently offline.",
     "Alright friends, let’s have some fun. Kill the bad things, save the good people, collect shiny loot, and most importantly look incredibly professional whenever somebody is watching.",
