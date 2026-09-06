@@ -1,87 +1,23 @@
-local ADDON_NAME = ...
-local SlashikWhichDungeonInviteAddon = _G.SlashikWhichDungeonInviteAddon or {}
-_G.SlashikWhichDungeonInviteAddon = SlashikWhichDungeonInviteAddon
-
-SlashikWhichDungeonInviteAddon.Settings = SlashikWhichDungeonInviteAddon.Settings or {}
-local S = SlashikWhichDungeonInviteAddon.Settings
-
-local DB_NAME = "SlashikWhichDungeonInviteDB"
-
-local DEFAULTS = {
+DEFAULT_SETTINGS = {
   enabledScreenWarning = true,
-  enabledHI = false
+  enabledHI = false,
+  greetingMessage = "Greetings, travelers!"
 }
 
-local function CopyDefaults(src, dst)
-  if type(dst) ~= "table" then dst = {} end
-  for k, v in pairs(src) do
-    if type(v) == "table" then
-      dst[k] = CopyDefaults(v, dst[k])
-    elseif dst[k] == nil then
-      dst[k] = v
+local function initializeDefaultSettings(settings)
+  for key, value in pairs(DEFAULT_SETTINGS) do
+    if settings[key] == nil then
+      settings[key] = value
     end
   end
-  return dst
 end
 
-local function GetDB()
-  return _G[DB_NAME]
-end
-
-local function SetDB(db)
-  _G[DB_NAME] = db
-end
-
-function S:InitDB()
-  SetDB(CopyDefaults(DEFAULTS, GetDB() or {}))
-end
-
-function S:Get(key)
-  local db = GetDB()
-  return db and db[key]
-end
-
-function S:Set(key, value)
-  local db = GetDB()
-  if not db then return end
-  db[key] = value
-end
-
-local function RegisterSettingsUI()
-  if not Settings then return end
-
-  local category = Settings.RegisterVerticalLayoutCategory(ADDON_NAME)
-  Settings.RegisterAddOnCategory(category)
-
-  local CreateCheckbox = Settings.CreateCheckbox or Settings.CreateCheckBox
-  if not CreateCheckbox then
-    print("API Problem -> CreateCheckbox or CreateCheckBox do not exist!")
-    return
+function getSetting()
+  if type(SlashikWhichDungeonInviteDB) ~= "table" then
+    SlashikWhichDungeonInviteDB = {}
   end
 
-  local function AddCheckbox(varName, label, tooltip)
-    local setting = Settings.RegisterAddOnSetting(
-      category,
-      varName,                 -- internal setting name
-      varName,                 -- key in SavedVariables table
-      GetDB(),                 -- SavedVariables table (must exist already)
-      Settings.VarType.Boolean,
-      label,
-      DEFAULTS[varName]
-    )
-    CreateCheckbox(category, setting, tooltip)
-  end
-
-  -- Settings
-  AddCheckbox("enabledScreenWarning", "Enable screen warning", "Turns the warning on/off for middle of the screen")
-  AddCheckbox("enabledHI", "Enable Greetings", "Turns the automaticaly saying Greetings, travelers! to party or raid chat")
+  local settings = SlashikWhichDungeonInviteDB
+  initializeDefaultSettings(settings)
+  return settings
 end
-
--- Init when addon loads
-local f = CreateFrame("Frame")
-f:RegisterEvent("ADDON_LOADED")
-f:SetScript("OnEvent", function(_, _, name)
-  if name ~= ADDON_NAME then return end
-  S:InitDB()
-  RegisterSettingsUI()
-end)

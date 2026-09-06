@@ -1,0 +1,5 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+  <Frame name="SlashikWhichDungeonInviteGreetingInputTemplate" virtual="true">
+    <Size x="600" y="88"/>
+  </Frame>
+</Ui>
