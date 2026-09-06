@@ -7,6 +7,7 @@
 ## IconTexture: Interface\\AddOns\\SlashikRaidBreakTime\\addonIcon
 
 Images.lua
+SettingsHelper.lua
 BreakTimerFrameHelper.lua
 RaidGroupHelper.lua
 BossModCompatibility.lua

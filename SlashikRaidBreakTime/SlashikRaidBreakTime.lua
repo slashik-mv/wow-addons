@@ -70,3 +70,39 @@ SlashCmdList.SLASHIKRAIDBREAKTIME = function(input)
         startBreak(tonumber(command))
     end
 end
+
+SLASH_SLASHIKRAIDBREAKSETTINGS1 = "/srbt"
+local function printSettingsHelp()
+    print("|cff55ddffSlashik Raid Break Time settings:|r")
+    print("|cffffcc00/srbt random <on|off>|r - Turn automatic image rotation on or off.")
+    print("|cffffcc00/srbt timer <1-120>|r - Set how often images change, in minutes.")
+    print("|cffffcc00/srbt help|r - Show this command list.")
+end
+
+SlashCmdList.SLASHIKRAIDBREAKSETTINGS = function(input)
+    local command, value = input:match("^(%S*)%s*(.-)$")
+    command = command:lower()
+
+    if command == "" or command == "help" then
+        printSettingsHelp()
+    elseif command == "random" then
+        value = value:lower()
+        if value == "on" then
+            frame:setRandomImagesEnabled(true)
+            print("|cff55ddffSlashik Raid Break Time: random image rotation is on.|r")
+        elseif value == "off" then
+            frame:setRandomImagesEnabled(false)
+            print("|cff55ddffSlashik Raid Break Time: random image rotation is off.|r")
+        else
+            print("|cffffcc00Usage: /srbt random <on|off>|r")
+        end
+    elseif command == "timer" then
+        if frame:setRandomTimerMinutes(value) then
+            print(string.format("|cff55ddffSlashik Raid Break Time: images change every %d minute(s).|r", frame:getRandomTimerMinutes()))
+        else
+            print("|cffffcc00Usage: /srbt timer <1-120>|r")
+        end
+    else
+        printSettingsHelp()
+    end
+end

@@ -29,8 +29,23 @@ function createRaidBreakTimeFrame(images)
     frame:SetScript("OnDragStart", frame.StartMoving)
     frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
 
-    -- Tracks the live countdown while the UI is loaded.
+    -- Tracks the live countdown and the current illustration while the UI is loaded.
     local breakEndTime = 0
+    local currentImageIndex = 1
+    local nextImageChangeTime = 0
+
+    local function scheduleNextImageChange(nextImageChangeAt)
+        local settings = getSettings()
+        if not settings.randomImages then
+            nextImageChangeTime = math.huge
+            return nil
+        end
+
+        local serverTime = GetServerTime()
+        nextImageChangeAt = tonumber(nextImageChangeAt) or (serverTime + settings.randomTimerMinutes * 60)
+        nextImageChangeTime = GetTime() + math.max(0, nextImageChangeAt - serverTime)
+        return nextImageChangeAt
+    end
 
     local function formatTime(seconds)
         seconds = math.max(0, math.ceil(seconds))
@@ -39,22 +54,90 @@ function createRaidBreakTimeFrame(images)
 
     function frame:hideBreak()
         breakEndTime = 0
+        nextImageChangeTime = 0
         if SlashikRaidBreakTimeDB then
             SlashikRaidBreakTimeDB.activeBreak = nil
         end
         self:Hide()
     end
 
-    function frame:showBreak(seconds, imageIndex)
+    function frame:showBreak(seconds, imageIndex, nextImageChangeAt)
         SlashikRaidBreakTimeDB = SlashikRaidBreakTimeDB or {}
-        imageIndex = imageIndex or 1
+        currentImageIndex = tonumber(imageIndex) or 1
+        if currentImageIndex < 1 or currentImageIndex > #images then
+            currentImageIndex = 1
+        end
+
         breakEndTime = GetTime() + seconds
-        self.art:SetTexture(images[imageIndex] or images[1])
+        nextImageChangeAt = scheduleNextImageChange(nextImageChangeAt)
+        self.art:SetTexture(images[currentImageIndex])
         SlashikRaidBreakTimeDB.activeBreak = {
             endAt = GetServerTime() + seconds,
-            imageIndex = imageIndex,
+            imageIndex = currentImageIndex,
+            nextImageChangeAt = nextImageChangeAt,
         }
         self:Show()
+    end
+
+    function frame:showNextImage()
+        local settings = getSettings()
+        if not settings.randomImages or #images < 2 then return end
+
+        local nextImageIndex = math.random(#images - 1)
+        if nextImageIndex >= currentImageIndex then
+            nextImageIndex = nextImageIndex + 1
+        end
+
+        currentImageIndex = nextImageIndex
+        local nextImageChangeAt = scheduleNextImageChange()
+        self.art:SetTexture(images[currentImageIndex])
+
+        local activeBreak = SlashikRaidBreakTimeDB and SlashikRaidBreakTimeDB.activeBreak
+        if activeBreak then
+            activeBreak.imageIndex = currentImageIndex
+            activeBreak.nextImageChangeAt = nextImageChangeAt
+        end
+    end
+
+    function frame:setRandomImagesEnabled(enabled)
+        local settings = getSettings()
+        settings.randomImages = enabled
+
+        local activeBreak = SlashikRaidBreakTimeDB.activeBreak
+        if enabled then
+            local nextImageChangeAt = scheduleNextImageChange()
+            if activeBreak then
+                activeBreak.nextImageChangeAt = nextImageChangeAt
+            end
+        else
+            nextImageChangeTime = math.huge
+            if activeBreak then
+                activeBreak.nextImageChangeAt = nil
+            end
+        end
+    end
+
+    function frame:setRandomTimerMinutes(minutes)
+        minutes = tonumber(minutes)
+        if not minutes or minutes ~= math.floor(minutes) or minutes < 1 or minutes > 120 then
+            return false
+        end
+
+        local settings = getSettings()
+        settings.randomTimerMinutes = minutes
+
+        if settings.randomImages and self:IsShown() then
+            local nextImageChangeAt = scheduleNextImageChange()
+            local activeBreak = SlashikRaidBreakTimeDB.activeBreak
+            if activeBreak then
+                activeBreak.nextImageChangeAt = nextImageChangeAt
+            end
+        end
+        return true
+    end
+
+    function frame:getRandomTimerMinutes()
+        return getSettings().randomTimerMinutes
     end
 
     function frame:restoreBreakAfterReload()
@@ -64,7 +147,7 @@ function createRaidBreakTimeFrame(images)
 
         local remaining = activeBreak.endAt - GetServerTime()
         if remaining > 0 then
-            self:showBreak(remaining, activeBreak.imageIndex)
+            self:showBreak(remaining, activeBreak.imageIndex, activeBreak.nextImageChangeAt)
         else
             SlashikRaidBreakTimeDB.activeBreak = nil
         end
@@ -85,6 +168,8 @@ function createRaidBreakTimeFrame(images)
         self.timer:SetText(formatTime(remaining))
         if remaining <= 0 then
             self:hideBreak()
+        elseif GetTime() >= nextImageChangeTime then
+            self:showNextImage()
         end
     end)
 
