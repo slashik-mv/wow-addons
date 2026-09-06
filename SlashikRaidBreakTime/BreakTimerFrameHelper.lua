@@ -140,6 +140,22 @@ function createRaidBreakTimeFrame(images)
         return getSettings().randomTimerMinutes
     end
 
+    function frame:isRandomImagesEnabled()
+        return getSettings().randomImages
+    end
+
+    function frame:resetRandomImageSettings()
+        resetSettingsToDefault()
+
+        if self:IsShown() then
+            local nextImageChangeAt = scheduleNextImageChange()
+            local activeBreak = SlashikRaidBreakTimeDB.activeBreak
+            if activeBreak then
+                activeBreak.nextImageChangeAt = nextImageChangeAt
+            end
+        end
+    end
+
     function frame:restoreBreakAfterReload()
         SlashikRaidBreakTimeDB = SlashikRaidBreakTimeDB or {}
         local activeBreak = SlashikRaidBreakTimeDB.activeBreak

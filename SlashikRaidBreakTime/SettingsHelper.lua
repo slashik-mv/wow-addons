@@ -15,3 +15,10 @@ function getSettings()
     initializeDefaultSettings(settings)
     return settings
 end
+
+function resetSettingsToDefault()
+    local settings = getSettings()
+    settings.randomImages = true
+    settings.randomTimerMinutes = 1
+    return settings
+end
