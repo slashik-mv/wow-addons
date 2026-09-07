@@ -1,9 +1,8 @@
 local addonName = ...
 local ADDON_PREFIX = "SRBT"
-local images = SlashikRaidBreakTimeImages
 
 -- Builds the visible raid-break timer window and its countdown behavior from BreakTimerFrameHelper.lua.
-local frame = createRaidBreakTimeFrame(images)
+local frame = createRaidBreakTimeFrame()
 
 -- Handles raid permissions and addon-message synchronization.
 local raidGroup = createRaidGroupHelper(ADDON_PREFIX)
@@ -27,7 +26,7 @@ local function startBreak(minutes)
         return
     end
 
-    local imageIndex = math.random(#images)
+    local imageIndex = getRandomPicture()
     frame:showBreak(seconds, imageIndex)
     if IsInGroup() then raidGroup:broadcast(seconds, imageIndex) end
 end
@@ -65,7 +64,7 @@ SlashCmdList.SLASHIKRAIDBREAKTIME = function(input)
     if command == "hide" or command == "stop" then
         frame:hideBreak()
     elseif command == "test" then
-        frame:showBreak(300, math.random(#images))
+        frame:showBreak(300, getRandomPicture())
     else
         startBreak(tonumber(command))
     end

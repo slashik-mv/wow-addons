@@ -1,4 +1,5 @@
-function createRaidBreakTimeFrame(images)
+function createRaidBreakTimeFrame()
+    local images = SlashikRaidBreakTimeImages
     local frame = CreateFrame("Frame", "SlashikRaidBreakTimeFrame", UIParent, "BackdropTemplate")
     frame:SetSize(500, 270)
     frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
@@ -33,6 +34,19 @@ function createRaidBreakTimeFrame(images)
     local breakEndTime = 0
     local currentImageIndex = 1
     local nextImageChangeTime = 0
+    local usedImageIndices = {}
+
+    local function restoreUsedImageIndices(savedUsedImageIndices)
+        local restoredImageIndices = {}
+        if type(savedUsedImageIndices) ~= "table" then return restoredImageIndices end
+
+        for imageIndex, wasUsed in pairs(savedUsedImageIndices) do
+            if wasUsed and type(imageIndex) == "number" and imageIndex >= 1 and imageIndex <= #images then
+                restoredImageIndices[imageIndex] = true
+            end
+        end
+        return restoredImageIndices
+    end
 
     local function scheduleNextImageChange(nextImageChangeAt)
         local settings = getSettings()
@@ -61,20 +75,24 @@ function createRaidBreakTimeFrame(images)
         self:Hide()
     end
 
-    function frame:showBreak(seconds, imageIndex, nextImageChangeAt)
+    function frame:showBreak(seconds, imageIndex, nextImageChangeAt, savedUsedImageIndices)
         SlashikRaidBreakTimeDB = SlashikRaidBreakTimeDB or {}
+        usedImageIndices = restoreUsedImageIndices(savedUsedImageIndices)
         currentImageIndex = tonumber(imageIndex) or 1
         if currentImageIndex < 1 or currentImageIndex > #images then
             currentImageIndex = 1
         end
+        usedImageIndices[currentImageIndex] = true
 
         breakEndTime = GetTime() + seconds
         nextImageChangeAt = scheduleNextImageChange(nextImageChangeAt)
-        self.art:SetTexture(images[currentImageIndex])
+        local _, imagePath = getRandomPicture(nil, currentImageIndex)
+        self.art:SetTexture(imagePath)
         SlashikRaidBreakTimeDB.activeBreak = {
             endAt = GetServerTime() + seconds,
             imageIndex = currentImageIndex,
             nextImageChangeAt = nextImageChangeAt,
+            usedImageIndices = usedImageIndices,
         }
         self:Show()
     end
@@ -83,19 +101,22 @@ function createRaidBreakTimeFrame(images)
         local settings = getSettings()
         if not settings.randomImages or #images < 2 then return end
 
-        local nextImageIndex = math.random(#images - 1)
-        if nextImageIndex >= currentImageIndex then
-            nextImageIndex = nextImageIndex + 1
+        local nextImageIndex = getRandomPicture(usedImageIndices)
+        if not nextImageIndex then
+            usedImageIndices = {}
+            nextImageIndex = getRandomPicture(usedImageIndices)
         end
-
         currentImageIndex = nextImageIndex
+        usedImageIndices[currentImageIndex] = true
         local nextImageChangeAt = scheduleNextImageChange()
-        self.art:SetTexture(images[currentImageIndex])
+        local _, imagePath = getRandomPicture(nil, currentImageIndex)
+        self.art:SetTexture(imagePath)
 
         local activeBreak = SlashikRaidBreakTimeDB and SlashikRaidBreakTimeDB.activeBreak
         if activeBreak then
             activeBreak.imageIndex = currentImageIndex
             activeBreak.nextImageChangeAt = nextImageChangeAt
+            activeBreak.usedImageIndices = usedImageIndices
         end
     end
 
@@ -163,7 +184,7 @@ function createRaidBreakTimeFrame(images)
 
         local remaining = activeBreak.endAt - GetServerTime()
         if remaining > 0 then
-            self:showBreak(remaining, activeBreak.imageIndex, activeBreak.nextImageChangeAt)
+            self:showBreak(remaining, activeBreak.imageIndex, activeBreak.nextImageChangeAt, activeBreak.usedImageIndices)
         else
             SlashikRaidBreakTimeDB.activeBreak = nil
         end
@@ -172,7 +193,7 @@ function createRaidBreakTimeFrame(images)
     function frame:showCompatibleBreak(seconds)
         seconds = tonumber(seconds)
         if seconds and seconds > 0 and seconds <= 3600 then
-            self:showBreak(seconds, math.random(#images))
+            self:showBreak(seconds, getRandomPicture())
         elseif seconds == 0 then
             self:hideBreak()
         end
