@@ -1,4 +1,6 @@
-SlashikChangingLayoutPullMessages = {
+local _, addon = ...
+
+addon.PullMessages = {
     "Alright everyone, please remember that dying is completely optional.",
     "Welcome to Mythic+, where the timer is our enemy and the healer is our therapist.",
     "May our interrupts be fast, our dodges be clean, and our confidence completely unjustified.",
