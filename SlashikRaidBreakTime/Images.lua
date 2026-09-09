@@ -7,6 +7,7 @@ SlashikRaidBreakTimeImages = {
     "whjinsck-break.tga",
     "frosham-break.tga",
     "skautik-break.tga",
+    "skautik-masterpiece-break.tga",
     "nadytaur-break.tga",
     "dengske-break.tga",
     "hoofski-break.tga",
