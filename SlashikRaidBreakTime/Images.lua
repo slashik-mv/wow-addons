@@ -21,6 +21,7 @@ SlashikRaidBreakTimeImages = {
     "varanus-break.tga",
     "chickenwing-break.tga",
     "padonk-break.tga",
+    "padonk2-break.tga",
     "wixxie-break.tga",
     "shocktopuss-break.tga",
     "miztaxih-break.tga",
