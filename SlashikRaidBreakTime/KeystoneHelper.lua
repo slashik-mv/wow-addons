@@ -8,6 +8,15 @@ function createKeystoneHelper()
     local sequence = 0
     local nextRequestAt = 0
     local lastReplies = {}
+    local rosterSignature
+    local refreshTimer
+
+    local function cancelPendingRefresh()
+        if refreshTimer then
+            refreshTimer:Cancel()
+            refreshTimer = nil
+        end
+    end
 
     local function fullName(unit)
         local name, realm = UnitFullName(unit)
@@ -33,6 +42,38 @@ function createKeystoneHelper()
         if IsInGroup() then return "PARTY" end
     end
 
+    local function updateRoster()
+        local names, present = {}, {}
+        for _, member in ipairs(partyMembers()) do
+            if member.name then
+                names[#names + 1] = member.name
+                present[member.name] = true
+            end
+        end
+        -- Unit order and leader changes do not change party membership.
+        table.sort(names)
+        local signature = (groupChannel() or "SOLO") .. ":" .. table.concat(names, ";")
+        if signature == rosterSignature then return false end
+        rosterSignature = signature
+        requestToken = nil
+        -- Keep keys for remaining members while removing departed members' data.
+        for name in pairs(results) do
+            if not present[name] then results[name] = nil end
+        end
+        for name in pairs(lastReplies) do
+            if not present[name] then lastReplies[name] = nil end
+        end
+        return true
+    end
+
+    local function scheduleRefresh()
+        cancelPendingRefresh()
+        refreshTimer = C_Timer.NewTimer(math.max(2, nextRequestAt - GetTime()), function()
+            refreshTimer = nil
+            if window and window:IsShown() then helper:refresh() end
+        end)
+    end
+
     local function ownKey()
         local mapID = C_MythicPlus.GetOwnedKeystoneChallengeMapID()
         local level = C_MythicPlus.GetOwnedKeystoneLevel()
@@ -46,6 +87,15 @@ function createKeystoneHelper()
         for i, row in ipairs(window.rows) do
             local member = members[i]
             row.name:SetText(member and member.name or "")
+            -- Reset reused rows before applying the current party member's class color.
+            row.name:SetTextColor(1, 1, 1)
+            if member then
+                local _, className = UnitClass(member.unit)
+                local color = className and RAID_CLASS_COLORS[className]
+                if color then
+                    row.name:SetTextColor(color.r, color.g, color.b)
+                end
+            end
             local text = ""
             if member then
                 local key = results[member.name]
@@ -66,11 +116,15 @@ function createKeystoneHelper()
     end
 
     function helper:refresh()
-        if GetTime() < nextRequestAt then return end
+        if GetTime() < nextRequestAt then
+            if not refreshTimer then scheduleRefresh() end
+            return
+        end
+        cancelPendingRefresh()
+        updateRoster()
         nextRequestAt = GetTime() + 2
         sequence = sequence + 1
         requestToken = string.format("%s-%d-%d", UnitGUID("player"), GetServerTime(), sequence)
-        results = {}
         local mapID, level = ownKey()
         results[fullName("player")] = { mapID = mapID, level = level }
         render()
@@ -91,6 +145,7 @@ function createKeystoneHelper()
             window:RegisterForDrag("LeftButton")
             window:SetScript("OnDragStart", window.StartMoving)
             window:SetScript("OnDragStop", window.StopMovingOrSizing)
+            window:SetScript("OnHide", cancelPendingRefresh)
             table.insert(UISpecialFrames, "SlashikRaidBreakTimeKeystoneFrame")
             local title = window:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
             title:SetPoint("TOPLEFT", 18, -18)
@@ -106,7 +161,7 @@ function createKeystoneHelper()
                 row.name:SetJustifyH("LEFT")
                 row.key = window:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
                 row.key:SetPoint("TOPLEFT", 270, -52 - (i - 1) * 28)
-                row.key:SetSize(372, 24)
+                row.key:SetSize(260, 24)
                 row.key:SetJustifyH("LEFT")
                 window.rows[i] = row
             end
@@ -119,6 +174,12 @@ function createKeystoneHelper()
             refresh:SetPoint("BOTTOMRIGHT", -18, 20)
             refresh:SetText("Refresh")
             refresh:SetScript("OnClick", function() helper:refresh() end)
+
+            -- Keep the decorative keystone in its own column above Refresh.
+            window.keystoneArt = window:CreateTexture(nil, "ARTWORK")
+            window.keystoneArt:SetSize(96, 96)
+            window.keystoneArt:SetPoint("BOTTOM", refresh, "TOP", 0, 12)
+            window.keystoneArt:SetTexture("Interface\\AddOns\\SlashikRaidBreakTime\\keystoneIcon.tga")
         end
         window:Show()
         self:refresh()
@@ -133,17 +194,13 @@ function createKeystoneHelper()
     events:SetScript("OnEvent", function(_, event, prefix, message, channel, sender)
         if event == "PLAYER_LOGIN" then
             C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
+            updateRoster()
         elseif event == "GROUP_ROSTER_UPDATE" then
-            results = {}
-            requestToken = nil
-            lastReplies = {}
-            if window and window:IsShown() then
-                -- Defer and coalesce roster events until the request throttle permits a refresh.
-                C_Timer.After(2, function()
-                    if window:IsShown() then helper:refresh() end
-                end)
-                render()
+            local changed = updateRoster()
+            if changed and window and window:IsShown() then
+                scheduleRefresh()
             end
+            render()
         elseif event == "BAG_UPDATE_DELAYED" then
             local mapID, level = ownKey()
             results[fullName("player")] = { mapID = mapID, level = level }
