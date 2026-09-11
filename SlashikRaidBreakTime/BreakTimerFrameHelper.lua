@@ -35,6 +35,7 @@ function createRaidBreakTimeFrame()
     local currentImageIndex = 1
     local nextImageChangeTime = 0
     local usedImageIndices = {}
+    local hasPlayedOneMinuteWarning = false
 
     local function restoreUsedImageIndices(savedUsedImageIndices)
         local restoredImageIndices = {}
@@ -75,9 +76,10 @@ function createRaidBreakTimeFrame()
         self:Hide()
     end
 
-    function frame:showBreak(seconds, imageIndex, nextImageChangeAt, savedUsedImageIndices)
+    function frame:showBreak(seconds, imageIndex, nextImageChangeAt, savedUsedImageIndices, oneMinuteWarningPlayed)
         SlashikRaidBreakTimeDB = SlashikRaidBreakTimeDB or {}
         usedImageIndices = restoreUsedImageIndices(savedUsedImageIndices)
+        hasPlayedOneMinuteWarning = oneMinuteWarningPlayed == true
         currentImageIndex = tonumber(imageIndex) or 1
         if currentImageIndex < 1 or currentImageIndex > #images then
             currentImageIndex = 1
@@ -93,8 +95,32 @@ function createRaidBreakTimeFrame()
             imageIndex = currentImageIndex,
             nextImageChangeAt = nextImageChangeAt,
             usedImageIndices = usedImageIndices,
+            oneMinuteWarningPlayed = hasPlayedOneMinuteWarning,
         }
         self:Show()
+    end
+
+    function frame:playOneMinuteWarning()
+        if hasPlayedOneMinuteWarning then return end
+
+        hasPlayedOneMinuteWarning = true
+        local activeBreak = SlashikRaidBreakTimeDB and SlashikRaidBreakTimeDB.activeBreak
+        if activeBreak then
+            activeBreak.oneMinuteWarningPlayed = true
+        end
+
+        -- This is the standard WoW alarm used by CursedSurgeTracker for its minute warnings.
+        if getSettings().audioEnabled then
+            local soundKit = (SOUNDKIT and SOUNDKIT.ALARM_CLOCK_WARNING_3) or 12889
+            PlaySound(soundKit, "Master")
+        end
+    end
+
+    function frame:playBreakEndWarning()
+        -- Blizzard's Cooldown Manager maps its native Air Horn alert to sound-kit ID 316436.
+        if getSettings().audioEnabled then
+            PlaySound(316436, "Master")
+        end
     end
 
     function frame:showNextImage()
@@ -165,7 +191,15 @@ function createRaidBreakTimeFrame()
         return getSettings().randomImages
     end
 
-    function frame:resetRandomImageSettings()
+    function frame:setAudioEnabled(enabled)
+        getSettings().audioEnabled = enabled
+    end
+
+    function frame:isAudioEnabled()
+        return getSettings().audioEnabled
+    end
+
+    function frame:resetSettings()
         resetSettingsToDefault()
 
         if self:IsShown() then
@@ -184,7 +218,7 @@ function createRaidBreakTimeFrame()
 
         local remaining = activeBreak.endAt - GetServerTime()
         if remaining > 0 then
-            self:showBreak(remaining, activeBreak.imageIndex, activeBreak.nextImageChangeAt, activeBreak.usedImageIndices)
+            self:showBreak(remaining, activeBreak.imageIndex, activeBreak.nextImageChangeAt, activeBreak.usedImageIndices, activeBreak.oneMinuteWarningPlayed)
         else
             SlashikRaidBreakTimeDB.activeBreak = nil
         end
@@ -204,8 +238,15 @@ function createRaidBreakTimeFrame()
         local remaining = breakEndTime - GetTime()
         self.timer:SetText(formatTime(remaining))
         if remaining <= 0 then
+            self:playBreakEndWarning()
             self:hideBreak()
-        elseif GetTime() >= nextImageChangeTime then
+            return
+        end
+
+        if remaining <= 60 then
+            self:playOneMinuteWarning()
+        end
+        if GetTime() >= nextImageChangeTime then
             self:showNextImage()
         end
     end)

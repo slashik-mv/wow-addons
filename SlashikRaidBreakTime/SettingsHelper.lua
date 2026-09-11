@@ -5,6 +5,9 @@ local function initializeDefaultSettings(settings)
     if type(settings.randomTimerMinutes) ~= "number" or settings.randomTimerMinutes < 1 then
         settings.randomTimerMinutes = 1
     end
+    if settings.audioEnabled == nil then
+        settings.audioEnabled = false
+    end
 end
 
 function getSettings()
@@ -20,5 +23,6 @@ function resetSettingsToDefault()
     local settings = getSettings()
     settings.randomImages = true
     settings.randomTimerMinutes = 1
+    settings.audioEnabled = false
     return settings
 end

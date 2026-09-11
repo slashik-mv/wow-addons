@@ -75,8 +75,9 @@ local function printSettingsHelp()
     print("|cff55ddffSlashik Raid Break Time settings:|r")
     print("|cffffcc00/srbt random <on|off>|r - Turn automatic image rotation on or off.")
     print("|cffffcc00/srbt timer <1-120>|r - Set how often images change, in minutes.")
-    print("|cffffcc00/srbt settings|r - Show the current rotation settings.")
-    print("|cffffcc00/srbt settings default|r - Reset rotation to on with a 1-minute timer.")
+    print("|cffffcc00/srbt audio <on|off>|r - Turn break-warning sounds on or off.")
+    print("|cffffcc00/srbt settings|r - Show the current addon settings.")
+    print("|cffffcc00/srbt settings default|r - Reset rotation to on, timer to 1 minute, and audio to off.")
     print("|cffffcc00/srbt help|r - Show this command list.")
 end
 
@@ -88,12 +89,14 @@ SlashCmdList.SLASHIKRAIDBREAKSETTINGS = function(input)
         printSettingsHelp()
     elseif command == "settings" then
         if value:lower() == "default" then
-            frame:resetRandomImageSettings()
-            print("|cff55ddffSlashik Raid Break Time: random image settings reset to on with a 1-minute timer.|r")
+            frame:resetSettings()
+            print("|cff55ddffSlashik Raid Break Time: settings reset to rotation on, a 1-minute timer, and audio off.|r")
         else
             local rotationStatus = frame:isRandomImagesEnabled() and "on" or "off"
+            local audioStatus = frame:isAudioEnabled() and "on" or "off"
             print(string.format("|cff55ddffSlashik Raid Break Time: random image rotation is %s.|r", rotationStatus))
             print(string.format("|cff55ddffRandom image timer: every %d minute(s).|r", frame:getRandomTimerMinutes()))
+            print(string.format("|cff55ddffBreak-warning audio is %s.|r", audioStatus))
         end
     elseif command == "random" then
         value = value:lower()
@@ -111,6 +114,17 @@ SlashCmdList.SLASHIKRAIDBREAKSETTINGS = function(input)
             print(string.format("|cff55ddffSlashik Raid Break Time: images change every %d minute(s).|r", frame:getRandomTimerMinutes()))
         else
             print("|cffffcc00Usage: /srbt timer <1-120>|r")
+        end
+    elseif command == "audio" then
+        value = value:lower()
+        if value == "on" then
+            frame:setAudioEnabled(true)
+            print("|cff55ddffSlashik Raid Break Time: break-warning audio is on.|r")
+        elseif value == "off" then
+            frame:setAudioEnabled(false)
+            print("|cff55ddffSlashik Raid Break Time: break-warning audio is off.|r")
+        else
+            print("|cffffcc00Usage: /srbt audio <on|off>|r")
         end
     else
         printSettingsHelp()
