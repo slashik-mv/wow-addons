@@ -1,5 +1,6 @@
 local addon, handler, pending = {}, nil, {}
 local shown, created = false, 0
+assert(loadfile("Settings.lua"))("Slashik7MilTodoList", addon)
 CreateFrame = function() return {
   RegisterEvent = function() end,
   SetScript = function(_, _, callback) handler = callback end,

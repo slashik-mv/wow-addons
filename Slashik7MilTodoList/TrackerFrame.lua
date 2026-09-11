@@ -1,5 +1,7 @@
 local _, addon = ...
-local ROW_HEIGHT, NAME_WIDTH, COLUMN_WIDTH = 38, 280, 126
+local ROW_HEIGHT, NAME_WIDTH, COLUMN_WIDTH = 38, 280, 146
+local TABLE_WIDTH = NAME_WIDTH + #addon.tasks * COLUMN_WIDTH
+local WINDOW_WIDTH = TABLE_WIDTH + 60
 
 local function Text(parent, font, x, y, width, value)
   local text = parent:CreateFontString(nil, "OVERLAY", font)
@@ -22,8 +24,8 @@ function addon:CreateWindow()
   local frame = CreateFrame("Frame", "Slashik7MilTodoListFrame", UIParent, "BackdropTemplate")
   self.window = frame
   frame:Hide()
-  frame:SetSize(970, 570)
-  frame:SetScale(math.min(1, UIParent:GetWidth() / 1000, UIParent:GetHeight() / 600))
+  frame:SetSize(WINDOW_WIDTH, 570)
+  frame:SetScale(math.min(1, UIParent:GetWidth() / (WINDOW_WIDTH + 30), UIParent:GetHeight() / 600))
   frame:SetFrameStrata("DIALOG")
   frame:SetClampedToScreen(true)
   frame:SetMovable(true)
@@ -57,7 +59,7 @@ function addon:CreateWindow()
   icon:SetPoint("TOPLEFT", 10, -8)
   icon:SetTexture("Interface\\AddOns\\Slashik7MilTodoList\\addonIcon")
   Text(titleBar, "GameFontNormalLarge", 62, -10, 600, "Slashik7MilTodoList")
-  Text(titleBar, "GameFontHighlightSmall", 62, -33, 700, "Your alt army. Five weeklies. One gold goal.")
+  Text(titleBar, "GameFontHighlightSmall", 62, -33, 700, "Your alt army. Your weekly checklist. One gold goal.")
   local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
   close:SetPoint("TOPRIGHT", -4, -4)
   frame.summary = Text(frame, "GameFontHighlight", 22, -77, 900, "")
@@ -70,7 +72,7 @@ function addon:CreateWindow()
   scroll:SetPoint("TOPLEFT", 22, -150)
   scroll:SetPoint("BOTTOMRIGHT", -38, 76)
   local content = CreateFrame("Frame", nil, scroll)
-  content:SetSize(910, 1)
+  content:SetSize(TABLE_WIDTH, 1)
   scroll:SetScrollChild(content)
   frame.content, frame.rows = content, {}
   frame.empty = Text(content, "GameFontHighlight", 12, -24, 870, "Log into a level-90 character to add it to your checklist.")
@@ -83,7 +85,7 @@ end
 
 function addon:CreateRow(index)
   local row = CreateFrame("Frame", nil, self.window.content)
-  row:SetSize(910, ROW_HEIGHT)
+  row:SetSize(TABLE_WIDTH, ROW_HEIGHT)
   row:SetPoint("TOPLEFT", 0, -(index - 1) * ROW_HEIGHT)
   row.background = row:CreateTexture(nil, "BACKGROUND")
   row.background:SetAllPoints()
