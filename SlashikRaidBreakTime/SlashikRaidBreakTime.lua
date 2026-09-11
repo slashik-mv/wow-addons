@@ -10,6 +10,9 @@ local raidGroup = createRaidGroupHelper(ADDON_PREFIX)
 -- Handles DBM and BigWigs break-timer compatibility.
 local bossMods = createBossModCompatibility(addonName, frame)
 
+-- Hidden party-keystone window and communication, independent of break timers.
+local keystones = createKeystoneHelper()
+
 local function startBreak(minutes)
     if not raidGroup:isAllowedToStart() then
         print("|cffff4444Slashik Raid Break Time: only the raid leader or an assistant can start a break.|r")
@@ -87,6 +90,8 @@ SlashCmdList.SLASHIKRAIDBREAKSETTINGS = function(input)
 
     if command == "" or command == "help" then
         printSettingsHelp()
+    elseif command == "key" then
+        keystones:show()
     elseif command == "settings" then
         if value:lower() == "default" then
             frame:resetSettings()
