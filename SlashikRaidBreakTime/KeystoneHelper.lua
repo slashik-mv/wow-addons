@@ -1,13 +1,10 @@
--- Separate protocol so ordinary party members can share keys without raid-leader permissions.
+-- Shared keystone protocol used by DBM, BigWigs and this addon.
 function createKeystoneHelper()
-    local PREFIX = "SRBT_KEYS"
     local helper = {}
+    local libKeystone = LibStub("LibKeystone")
     local window
     local results = {}
-    local requestToken
-    local sequence = 0
     local nextRequestAt = 0
-    local lastReplies = {}
     local rosterSignature
     local refreshTimer
 
@@ -55,13 +52,9 @@ function createKeystoneHelper()
         local signature = (groupChannel() or "SOLO") .. ":" .. table.concat(names, ";")
         if signature == rosterSignature then return false end
         rosterSignature = signature
-        requestToken = nil
         -- Keep keys for remaining members while removing departed members' data.
         for name in pairs(results) do
             if not present[name] then results[name] = nil end
-        end
-        for name in pairs(lastReplies) do
-            if not present[name] then lastReplies[name] = nil end
         end
         return true
     end
@@ -112,8 +105,24 @@ function createKeystoneHelper()
             end
             row.key:SetText(text)
         end
-        window.hint:SetText(IsInRaid() and "Party only — showing your own keystone." or "Unknown: no reply yet. Party members need the updated addon.")
+        window.hint:SetText(IsInRaid() and "Party only — showing your own keystone." or "Supports SRBT, DBM and BigWigs keystone sharing.")
     end
+
+    -- Only display current party members. LibKeystone shortens same-realm names,
+    -- so resolve its callbacks back to the full names used by our rows.
+    libKeystone.Register(helper, function(level, mapID, _, sender, channel)
+        if channel ~= "PARTY" or IsInRaid() then return end
+        if type(level) ~= "number" or type(mapID) ~= "number" then return end
+        if level < 0 or level > 1000 or mapID < 0 or mapID > 100000 then return end
+        if (mapID == 0) ~= (level == 0) then return end
+        for _, member in ipairs(partyMembers()) do
+            if member.name and (sender == member.name or sender == Ambiguate(member.name, "none")) then
+                results[member.name] = { mapID = mapID, level = level }
+                render()
+                return
+            end
+        end
+    end)
 
     function helper:refresh()
         if GetTime() < nextRequestAt then
@@ -123,13 +132,11 @@ function createKeystoneHelper()
         cancelPendingRefresh()
         updateRoster()
         nextRequestAt = GetTime() + 2
-        sequence = sequence + 1
-        requestToken = string.format("%s-%d-%d", UnitGUID("player"), GetServerTime(), sequence)
         local mapID, level = ownKey()
         results[fullName("player")] = { mapID = mapID, level = level }
         render()
-        local channel = groupChannel()
-        if channel then C_ChatInfo.SendAddonMessage(PREFIX, "Q:" .. requestToken, channel) end
+        -- LibKeystone handles requests, replies and network throttling itself.
+        if not IsInRaid() then libKeystone.Request("PARTY") end
     end
 
     function helper:show()
@@ -180,6 +187,14 @@ function createKeystoneHelper()
             window.keystoneArt:SetSize(96, 96)
             window.keystoneArt:SetPoint("BOTTOM", refresh, "TOP", 0, 12)
             window.keystoneArt:SetTexture("Interface\\AddOns\\SlashikRaidBreakTime\\keystoneIcon.tga")
+
+            window.keystoneCaption = window:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+            local fontPath, fontSize, fontFlags = window.keystoneCaption:GetFont()
+            window.keystoneCaption:SetFont(fontPath, fontSize * 2, fontFlags)
+            window.keystoneCaption:SetPoint("BOTTOM", window.keystoneArt, "TOP", 0, 6)
+            window.keystoneCaption:SetWidth(100)
+            window.keystoneCaption:SetJustifyH("CENTER")
+            window.keystoneCaption:SetText("Never stop pushing!")
         end
         window:Show()
         self:refresh()
@@ -188,12 +203,10 @@ function createKeystoneHelper()
 
     local events = CreateFrame("Frame")
     events:RegisterEvent("PLAYER_LOGIN")
-    events:RegisterEvent("CHAT_MSG_ADDON")
     events:RegisterEvent("GROUP_ROSTER_UPDATE")
     events:RegisterEvent("BAG_UPDATE_DELAYED")
-    events:SetScript("OnEvent", function(_, event, prefix, message, channel, sender)
+    events:SetScript("OnEvent", function(_, event)
         if event == "PLAYER_LOGIN" then
-            C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
             updateRoster()
         elseif event == "GROUP_ROSTER_UPDATE" then
             local changed = updateRoster()
@@ -204,28 +217,6 @@ function createKeystoneHelper()
         elseif event == "BAG_UPDATE_DELAYED" then
             local mapID, level = ownKey()
             results[fullName("player")] = { mapID = mapID, level = level }
-            render()
-        elseif event == "CHAT_MSG_ADDON" then
-            if prefix ~= PREFIX or channel ~= groupChannel() or type(message) ~= "string" then return end
-            local memberName
-            for _, member in ipairs(partyMembers()) do
-                if sender == member.name then memberName = member.name break end
-            end
-            if not memberName or memberName == fullName("player") then return end
-            local token = message:match("^Q:([%w%-]+)$")
-            if token and #token <= 80 then
-                if GetTime() < (lastReplies[memberName] or 0) then return end
-                lastReplies[memberName] = GetTime() + 2
-                local mapID, level = ownKey()
-                C_ChatInfo.SendAddonMessage(PREFIX, string.format("R:%s:%d:%d", token, mapID, level), channel)
-                return
-            end
-            local replyToken, mapID, level = message:match("^R:([%w%-]+):(%d+):(%d+)$")
-            if not requestToken or replyToken ~= requestToken then return end
-            mapID, level = tonumber(mapID), tonumber(level)
-            if not mapID or not level or mapID > 100000 or level > 1000 then return end
-            if (mapID == 0) ~= (level == 0) then return end
-            results[memberName] = { mapID = mapID, level = level }
             render()
         end
     end)
