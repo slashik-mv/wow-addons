@@ -105,7 +105,7 @@ function createKeystoneHelper()
             end
             row.key:SetText(text)
         end
-        window.hint:SetText(IsInRaid() and "Party only — showing your own keystone." or "Supports SRBT, DBM and BigWigs keystone sharing.")
+        window.hint:SetText(IsInRaid() and "Party only — showing your own key." or "Keystone sharing: SRBT, DBM & BigWigs.")
     end
 
     -- Only display current party members. LibKeystone shortens same-realm names,
@@ -143,7 +143,16 @@ function createKeystoneHelper()
         if not window then
             window = CreateFrame("Frame", "SlashikRaidBreakTimeKeystoneFrame", UIParent, "BackdropTemplate")
             window:SetSize(660, 255)
-            window:SetPoint("CENTER")
+            window:SetClampedToScreen(true)
+            local position = SlashikRaidBreakTimeDB and SlashikRaidBreakTimeDB.keystoneWindowPosition
+            local anchors = { TOPLEFT = true, TOP = true, TOPRIGHT = true, LEFT = true,
+                CENTER = true, RIGHT = true, BOTTOMLEFT = true, BOTTOM = true, BOTTOMRIGHT = true }
+            if type(position) == "table" and anchors[position.point] and anchors[position.relativePoint]
+                and type(position.x) == "number" and type(position.y) == "number" then
+                window:SetPoint(position.point, UIParent, position.relativePoint, position.x, position.y)
+            else
+                window:SetPoint("CENTER")
+            end
             window:SetFrameStrata("DIALOG")
             window:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark" })
             window:SetBackdropColor(0, 0, 0, 0.95)
@@ -151,7 +160,15 @@ function createKeystoneHelper()
             window:EnableMouse(true)
             window:RegisterForDrag("LeftButton")
             window:SetScript("OnDragStart", window.StartMoving)
-            window:SetScript("OnDragStop", window.StopMovingOrSizing)
+            window:SetScript("OnDragStop", function(self)
+                self:StopMovingOrSizing()
+                local point, _, relativePoint, x, y = self:GetPoint()
+                -- Store only serializable anchor values, not the parent frame itself.
+                SlashikRaidBreakTimeDB = SlashikRaidBreakTimeDB or {}
+                SlashikRaidBreakTimeDB.keystoneWindowPosition = {
+                    point = point, relativePoint = relativePoint, x = x, y = y,
+                }
+            end)
             window:SetScript("OnHide", cancelPendingRefresh)
             table.insert(UISpecialFrames, "SlashikRaidBreakTimeKeystoneFrame")
             local title = window:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
@@ -173,14 +190,27 @@ function createKeystoneHelper()
                 window.rows[i] = row
             end
             window.hint = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-            window.hint:SetPoint("BOTTOMLEFT", 18, 16)
-            window.hint:SetSize(500, 36)
+            window.hint:SetPoint("BOTTOMLEFT", 18, 26)
+            window.hint:SetSize(280, 14)
+            window.hint:SetJustifyV("MIDDLE")
             window.hint:SetJustifyH("LEFT")
             local refresh = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
             refresh:SetSize(100, 26)
             refresh:SetPoint("BOTTOMRIGHT", -18, 20)
             refresh:SetText("Refresh")
             refresh:SetScript("OnClick", function() helper:refresh() end)
+
+            window.autoOpen = CreateFrame("CheckButton", nil, window, "UICheckButtonTemplate")
+            window.autoOpen:SetSize(24, 24)
+            window.autoOpen:SetPoint("RIGHT", refresh, "LEFT", -210, 0)
+            local autoOpenLabel = window:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            autoOpenLabel:SetPoint("LEFT", window.autoOpen, "RIGHT", 2, 0)
+            autoOpenLabel:SetText("Open when Mythic+ finishes")
+            window.autoOpen:SetScript("OnClick", function(self)
+                -- Keep this window preference separate from the break-timer settings.
+                SlashikRaidBreakTimeDB = SlashikRaidBreakTimeDB or {}
+                SlashikRaidBreakTimeDB.autoOpenKeystones = self:GetChecked() == true
+            end)
 
             -- Keep the decorative keystone in its own column above Refresh.
             window.keystoneArt = window:CreateTexture(nil, "ARTWORK")
@@ -196,6 +226,7 @@ function createKeystoneHelper()
             window.keystoneCaption:SetJustifyH("CENTER")
             window.keystoneCaption:SetText("Never stop pushing!")
         end
+        window.autoOpen:SetChecked(SlashikRaidBreakTimeDB and SlashikRaidBreakTimeDB.autoOpenKeystones == true)
         window:Show()
         self:refresh()
         render()
@@ -205,9 +236,14 @@ function createKeystoneHelper()
     events:RegisterEvent("PLAYER_LOGIN")
     events:RegisterEvent("GROUP_ROSTER_UPDATE")
     events:RegisterEvent("BAG_UPDATE_DELAYED")
+    events:RegisterEvent("CHALLENGE_MODE_COMPLETED")
     events:SetScript("OnEvent", function(_, event)
         if event == "PLAYER_LOGIN" then
             updateRoster()
+        elseif event == "CHALLENGE_MODE_COMPLETED" then
+            if SlashikRaidBreakTimeDB and SlashikRaidBreakTimeDB.autoOpenKeystones == true then
+                helper:show()
+            end
         elseif event == "GROUP_ROSTER_UPDATE" then
             local changed = updateRoster()
             if changed and window and window:IsShown() then
