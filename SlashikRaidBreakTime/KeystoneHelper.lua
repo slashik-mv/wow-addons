@@ -1,6 +1,7 @@
 -- Shared keystone protocol used by DBM, BigWigs and this addon.
 function createKeystoneHelper()
     local helper = {}
+    local keyRoll = createKeystoneRollHelper()
     local libKeystone = LibStub("LibKeystone")
     local window
     local results = {}
@@ -52,6 +53,7 @@ function createKeystoneHelper()
         local signature = (groupChannel() or "SOLO") .. ":" .. table.concat(names, ";")
         if signature == rosterSignature then return false end
         rosterSignature = signature
+        keyRoll.cancel()
         -- Keep keys for remaining members while removing departed members' data.
         for name in pairs(results) do
             if not present[name] then results[name] = nil end
@@ -82,6 +84,8 @@ function createKeystoneHelper()
             row.member = member
             row.post:SetShown(member ~= nil)
             row.post:Disable()
+            row.go:SetShown(member ~= nil)
+            row.go:Disable()
             row.name:SetText(member and member.name or "")
             -- Reset reused rows before applying the current party member's class color.
             row.name:SetTextColor(1, 1, 1)
@@ -104,12 +108,15 @@ function createKeystoneHelper()
                 else
                     local dungeon = C_ChallengeMode.GetMapUIInfo(key.mapID)
                     text = string.format("+%d  %s", key.level, dungeon or ("Dungeon " .. key.mapID))
-                    if dungeon then row.post:Enable() end
+                    if dungeon then
+                        row.post:Enable()
+                        if IsInGroup() and not IsInRaid() then row.go:Enable() end
+                    end
                 end
             end
             row.key:SetText(text)
         end
-        window.hint:SetText(IsInRaid() and "Party only — showing your own key." or "Keystone sharing: SRBT, DBM & BigWigs.")
+        window.hint:SetText(IsInRaid() and "Party only — showing your own key." or "Sharing: SRBT, DBM & BigWigs.")
     end
 
     -- Only display current party members. LibKeystone shortens same-realm names,
@@ -146,7 +153,7 @@ function createKeystoneHelper()
     function helper:show()
         if not window then
             window = CreateFrame("Frame", "SlashikRaidBreakTimeKeystoneFrame", UIParent, "BackdropTemplate")
-            window:SetSize(660, 255)
+            window:SetSize(780, 255)
             window:SetClampedToScreen(true)
             local position = SlashikRaidBreakTimeDB and SlashikRaidBreakTimeDB.keystoneWindowPosition
             local anchors = { TOPLEFT = true, TOP = true, TOPRIGHT = true, LEFT = true,
@@ -192,9 +199,9 @@ function createKeystoneHelper()
                 row.key:SetSize(200, 24)
                 row.key:SetJustifyH("LEFT")
                 row.post = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
-                row.post:SetSize(50, 22)
+                row.post:SetSize(90, 22)
                 row.post:SetPoint("LEFT", row.key, "RIGHT", 8, 0)
-                row.post:SetText("Post")
+                row.post:SetText("Guild Post")
                 row.post:SetScript("OnClick", function()
                     -- Resolve the current row again so roster changes cannot post an old key.
                     local member = row.member
@@ -202,11 +209,22 @@ function createKeystoneHelper()
                     local key = results[member.name]
                     if key then postKeystoneToGuild(key.mapID, key.level) end
                 end)
+                row.go = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
+                row.go:SetSize(74, 22)
+                row.go:SetPoint("LEFT", row.post, "RIGHT", 6, 0)
+                row.go:SetText("Let's Go")
+                row.go:SetScript("OnClick", function()
+                    if keyRoll:isPending() then return end
+                    local member = row.member
+                    if not member or fullName(member.unit) ~= member.name then return end
+                    local key = results[member.name]
+                    if key then announceKeystoneToParty(member.name, key.mapID, key.level) end
+                end)
                 window.rows[i] = row
             end
             window.hint = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
             window.hint:SetPoint("BOTTOMLEFT", 18, 26)
-            window.hint:SetSize(280, 14)
+            window.hint:SetSize(250, 14)
             window.hint:SetJustifyV("MIDDLE")
             window.hint:SetJustifyH("LEFT")
             local refresh = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
@@ -215,9 +233,41 @@ function createKeystoneHelper()
             refresh:SetText("Refresh")
             refresh:SetScript("OnClick", function() helper:refresh() end)
 
+            local roll = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
+            roll:SetSize(100, 26)
+            roll:SetPoint("RIGHT", refresh, "LEFT", -8, 0)
+            roll:SetText("Roll")
+            roll:SetScript("OnClick", function()
+                if not IsInGroup() or IsInRaid() then
+                    print("SlashikRaidBreakTime: Join a party to roll for the next key.")
+                    return
+                end
+                local keys = {}
+                if not canAnnounceKeystoneToParty() then
+                    print("SlashikRaidBreakTime: Please wait a few seconds before rolling another key.")
+                    return
+                end
+                for _, member in ipairs(partyMembers()) do
+                    local key = results[member.name]
+                    if key and key.mapID > 0 and key.level > 0 and UnitIsConnected(member.unit)
+                        and C_ChallengeMode.GetMapUIInfo(key.mapID) then
+                        keys[#keys + 1] = { owner = member.name, unit = member.unit, mapID = key.mapID, level = key.level }
+                    end
+                end
+                keyRoll:start(keys, function(chosen)
+                    local current = results[chosen.owner]
+                    if fullName(chosen.unit) ~= chosen.owner or not current
+                        or current.mapID ~= chosen.mapID or current.level ~= chosen.level then
+                        print("SlashikRaidBreakTime: The selected key changed. Refresh and roll again.")
+                        return
+                    end
+                    announceKeystoneToParty(chosen.owner, chosen.mapID, chosen.level)
+                end)
+            end)
+
             window.autoOpen = CreateFrame("CheckButton", nil, window, "UICheckButtonTemplate")
             window.autoOpen:SetSize(24, 24)
-            window.autoOpen:SetPoint("RIGHT", refresh, "LEFT", -210, 0)
+            window.autoOpen:SetPoint("RIGHT", roll, "LEFT", -210, 0)
             local autoOpenLabel = window:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
             autoOpenLabel:SetPoint("LEFT", window.autoOpen, "RIGHT", 2, 0)
             autoOpenLabel:SetText("Open when Mythic+ finishes")
