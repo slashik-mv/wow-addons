@@ -4,6 +4,7 @@ function createKeystoneHelper()
     local keyRoll = createKeystoneRollHelper()
     local libKeystone = LibStub("LibKeystone")
     local window
+    local showAfterCombat = false
     local results = {}
     local nextRequestAt = 0
     local rosterSignature
@@ -77,10 +78,13 @@ function createKeystoneHelper()
     end
 
     local function render()
-        if not window or not window:IsShown() then return end
+        if not window or not window.initialized or not window:IsShown() or InCombatLockdown() then return end
         local members = partyMembers()
         for i, row in ipairs(window.rows) do
             local member = members[i]
+            local memberKey = member and results[member.name]
+            row.teleport:SetShown(member ~= nil)
+            updateDungeonTeleportButton(row.teleport, memberKey and memberKey.mapID)
             row.member = member
             row.post:SetShown(member ~= nil)
             row.post:Disable()
@@ -151,9 +155,17 @@ function createKeystoneHelper()
     end
 
     function helper:show()
+        if InCombatLockdown() then
+            showAfterCombat = true
+            print("SlashikRaidBreakTime: The keystone window will open after combat.")
+            return
+        end
         if not window then
             window = CreateFrame("Frame", "SlashikRaidBreakTimeKeystoneFrame", UIParent, "BackdropTemplate")
-            window:SetSize(780, 255)
+            window:Hide()
+            window:SetSize(868, 255)
+            -- Secure spell buttons protect their parent: hide it safely during combat.
+            RegisterStateDriver(window, "visibility", "[combat] hide;")
             window:SetClampedToScreen(true)
             local position = SlashikRaidBreakTimeDB and SlashikRaidBreakTimeDB.keystoneWindowPosition
             local anchors = { TOPLEFT = true, TOP = true, TOPRIGHT = true, LEFT = true,
@@ -220,6 +232,7 @@ function createKeystoneHelper()
                     local key = results[member.name]
                     if key then announceKeystoneToParty(member.name, key.mapID, key.level) end
                 end)
+                row.teleport = createDungeonTeleportButton(window, i)
                 window.rows[i] = row
             end
             window.hint = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
@@ -290,6 +303,7 @@ function createKeystoneHelper()
             window.keystoneCaption:SetWidth(100)
             window.keystoneCaption:SetJustifyH("CENTER")
             window.keystoneCaption:SetText("Never stop pushing!")
+            window.initialized = true
         end
         window.autoOpen:SetChecked(SlashikRaidBreakTimeDB and SlashikRaidBreakTimeDB.autoOpenKeystones == true)
         window:Show()
@@ -302,9 +316,21 @@ function createKeystoneHelper()
     events:RegisterEvent("GROUP_ROSTER_UPDATE")
     events:RegisterEvent("BAG_UPDATE_DELAYED")
     events:RegisterEvent("CHALLENGE_MODE_COMPLETED")
+    events:RegisterEvent("PLAYER_REGEN_ENABLED")
+    events:RegisterEvent("SPELLS_CHANGED")
+    events:RegisterEvent("SPELL_UPDATE_COOLDOWN")
     events:SetScript("OnEvent", function(_, event)
         if event == "PLAYER_LOGIN" then
             updateRoster()
+        elseif event == "PLAYER_REGEN_ENABLED" then
+            if showAfterCombat then
+                showAfterCombat = false
+                helper:show()
+            else
+                render()
+            end
+        elseif event == "SPELLS_CHANGED" or event == "SPELL_UPDATE_COOLDOWN" then
+            render()
         elseif event == "CHALLENGE_MODE_COMPLETED" then
             if SlashikRaidBreakTimeDB and SlashikRaidBreakTimeDB.autoOpenKeystones == true then
                 helper:show()
