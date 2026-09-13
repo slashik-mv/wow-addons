@@ -79,6 +79,9 @@ function createKeystoneHelper()
         local members = partyMembers()
         for i, row in ipairs(window.rows) do
             local member = members[i]
+            row.member = member
+            row.post:SetShown(member ~= nil)
+            row.post:Disable()
             row.name:SetText(member and member.name or "")
             -- Reset reused rows before applying the current party member's class color.
             row.name:SetTextColor(1, 1, 1)
@@ -101,6 +104,7 @@ function createKeystoneHelper()
                 else
                     local dungeon = C_ChallengeMode.GetMapUIInfo(key.mapID)
                     text = string.format("+%d  %s", key.level, dungeon or ("Dungeon " .. key.mapID))
+                    if dungeon then row.post:Enable() end
                 end
             end
             row.key:SetText(text)
@@ -185,8 +189,19 @@ function createKeystoneHelper()
                 row.name:SetJustifyH("LEFT")
                 row.key = window:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
                 row.key:SetPoint("TOPLEFT", 270, -52 - (i - 1) * 28)
-                row.key:SetSize(260, 24)
+                row.key:SetSize(200, 24)
                 row.key:SetJustifyH("LEFT")
+                row.post = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
+                row.post:SetSize(50, 22)
+                row.post:SetPoint("LEFT", row.key, "RIGHT", 8, 0)
+                row.post:SetText("Post")
+                row.post:SetScript("OnClick", function()
+                    -- Resolve the current row again so roster changes cannot post an old key.
+                    local member = row.member
+                    if not member or fullName(member.unit) ~= member.name or not UnitIsConnected(member.unit) then return end
+                    local key = results[member.name]
+                    if key then postKeystoneToGuild(key.mapID, key.level) end
+                end)
                 window.rows[i] = row
             end
             window.hint = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
