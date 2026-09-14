@@ -19,17 +19,25 @@ function createGuildKeystoneHelper()
                 end
             end
         end
-        table.sort(members, function(a, b) return a.name < b.name end)
         for name in pairs(results) do if not present[name] then results[name] = nil end end
     end
 
     local function render()
         if not window or not window.ready or not window:IsShown() or InCombatLockdown() then return end
+        -- Re-sort as key replies arrive; names provide a stable tie-breaker.
+        table.sort(members, function(a, b)
+            local aKey, bKey = results[a.name], results[b.name]
+            local aLevel = aKey and aKey.mapID > 0 and aKey.level or 0
+            local bLevel = bKey and bKey.mapID > 0 and bKey.level or 0
+            if aLevel ~= bLevel then return aLevel > bLevel end
+            return a.name < b.name
+        end)
         local pages = math.max(1, math.ceil(#members / PAGE_SIZE))
         page = math.min(page, pages)
         for i, row in ipairs(window.rows) do
             local member = members[(page - 1) * PAGE_SIZE + i]
             local key = member and results[member.name]
+            row.member = member
             row.name:SetText(member and member.name or "")
             local color = member and member.class and RAID_CLASS_COLORS[member.class]
             row.name:SetTextColor(color and color.r or 1, color and color.g or 1, color and color.b or 1)
@@ -40,6 +48,9 @@ function createGuildKeystoneHelper()
                 else text = string.format("+%d  %s", key.level, C_ChallengeMode.GetMapUIInfo(key.mapID) or ("Dungeon " .. key.mapID)) end
             end
             row.key:SetText(text)
+            row.whisper:SetShown(member ~= nil)
+            row.whisper:SetEnabled(key ~= nil and key.mapID > 0 and key.level > 0
+                and C_ChallengeMode.GetMapUIInfo(key.mapID) ~= nil)
             row.teleport:SetShown(member ~= nil)
             updateDungeonTeleportButton(row.teleport, key and key.mapID)
         end
@@ -81,7 +92,7 @@ function createGuildKeystoneHelper()
         if not window then
             window = CreateFrame("Frame", "SlashikRaidBreakTimeGuildKeystoneFrame", UIParent, "BackdropTemplate")
             window:Hide()
-            window:SetSize(760, 390)
+            window:SetSize(850, 390)
             window:SetClampedToScreen(true)
             window:SetFrameStrata("DIALOG")
             window:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark" })
@@ -120,7 +131,18 @@ function createGuildKeystoneHelper()
                 row.key:SetPoint("TOPLEFT", 280, -52 - (i - 1) * 28)
                 row.key:SetSize(360, 24)
                 row.key:SetJustifyH("LEFT")
+                row.whisper = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
+                row.whisper:SetSize(82, 22)
+                row.whisper:SetPoint("TOPLEFT", window, "TOPLEFT", 654, -53 - (i - 1) * 28)
+                row.whisper:SetText("Whisper")
+                row.whisper:SetScript("OnClick", function()
+                    local member = row.member
+                    local key = member and results[member.name]
+                    if key then whisperGuildKeystoneOwner(member.name, key.mapID, key.level) end
+                end)
                 row.teleport = createDungeonTeleportButton(window, i)
+                row.teleport:ClearAllPoints()
+                row.teleport:SetPoint("TOPLEFT", window, "TOPLEFT", 744, -53 - (i - 1) * 28)
                 window.rows[i] = row
             end
             window.status = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
