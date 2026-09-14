@@ -1,5 +1,5 @@
 -- Shared keystone protocol used by DBM, BigWigs and this addon.
-function createKeystoneHelper()
+function createKeystoneHelper(openGuildKeys)
     local helper = {}
     local keyRoll = createKeystoneRollHelper()
     local libKeystone = LibStub("LibKeystone")
@@ -197,6 +197,14 @@ function createKeystoneHelper()
             local title = window:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
             title:SetPoint("TOPLEFT", 18, -18)
             title:SetText("Party Keystones")
+            local guildKeys = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
+            guildKeys:SetSize(100, 24)
+            -- Anchor to the frame, keeping clear of secure buttons' anchor chains.
+            guildKeys:SetPoint("TOPLEFT", 18 + title:GetStringWidth() + 16, -15)
+            guildKeys:SetText("Guild Keys")
+            guildKeys:SetScript("OnClick", function()
+                if openGuildKeys then openGuildKeys() end
+            end)
             local close = CreateFrame("Button", nil, window, "UIPanelCloseButton")
             close:SetPoint("TOPRIGHT", -4, -4)
             window.rows = {}

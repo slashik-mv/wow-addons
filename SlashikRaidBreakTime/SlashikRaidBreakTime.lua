@@ -11,7 +11,8 @@ local raidGroup = createRaidGroupHelper(ADDON_PREFIX)
 local bossMods = createBossModCompatibility(addonName, frame)
 
 -- Hidden party-keystone window and communication, independent of break timers.
-local keystones = createKeystoneHelper()
+local guildKeystones = createGuildKeystoneHelper()
+local keystones = createKeystoneHelper(function() guildKeystones:show() end)
 
 local function startBreak(minutes)
     if not raidGroup:isAllowedToStart() then
@@ -91,7 +92,11 @@ SlashCmdList.SLASHIKRAIDBREAKSETTINGS = function(input)
     if command == "" or command == "help" then
         printSettingsHelp()
     elseif command == "key" then
-        keystones:show()
+        if value:lower() == "guild" then
+            guildKeystones:show()
+        else
+            keystones:show()
+        end
     elseif command == "settings" then
         if value:lower() == "default" then
             frame:resetSettings()
