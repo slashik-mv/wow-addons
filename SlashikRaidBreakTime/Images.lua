@@ -26,4 +26,5 @@ SlashikRaidBreakTimeImages = {
     "shocktopuss-break.tga",
     "miztaxih-break.tga",
     "leilli-break.tga",
+    "reggie-break.tga",
 }
