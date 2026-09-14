@@ -4,7 +4,7 @@
 ## Author: Slashik
 ## Version: 2.10
 ## SavedVariables: SlashikRaidBreakTimeDB
-## IconTexture: Interface\\AddOns\\SlashikRaidBreakTime\\addonIcon
+## IconTexture: Interface\AddOns\SlashikRaidBreakTime\addonIcon
 
 Libs\LibStub.lua
 Libs\LibKeystone.lua
