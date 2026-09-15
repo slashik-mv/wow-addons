@@ -1,14 +1,51 @@
 local _, ns = ...
 local ASCENT, SECOND_WIND, SURGE = 372610, 425782, 361584
-local function bar(parent, r, g, b)
+local function bar(parent)
     local frame = CreateFrame("StatusBar", nil, parent)
-    frame:SetStatusBarTexture("Interface\\Buttons\\WHITE8x8")
     frame:SetMinMaxValues(0, 1)
-    frame:SetStatusBarColor(r, g, b)
-    local bg = frame:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints()
-    bg:SetColorTexture(0.07, 0.07, 0.08, 0.85)
+    frame.bg = frame:CreateTexture(nil, "BACKGROUND")
+    frame.bg:SetAllPoints()
+    frame.art = frame:CreateTexture(nil, "OVERLAY")
+    frame.art:SetAllPoints()
+    frame.border = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+    frame.border:SetAllPoints()
     return frame
+end
+local function border(frame, theme)
+    local style = theme.border
+    frame:SetBackdrop(style and {edgeFile = style.texture, edgeSize = style.size} or nil)
+    if style then frame:SetBackdropBorderColor(unpack(style.color)) end
+end
+local function styleBar(frame, theme, style, native)
+    frame:SetOrientation(native and "VERTICAL" or "HORIZONTAL")
+    frame:SetStatusBarTexture(native and style.atlas.fill or theme.texture)
+    frame:SetStatusBarColor(unpack(style.color))
+    frame.bg:ClearAllPoints()
+    frame.bg:SetAllPoints()
+    if native then
+        frame.bg:SetAtlas(style.atlas.background)
+        frame.bg:SetVertexColor(1, 1, 1, 1)
+        frame.art:SetAtlas(style.atlas.frame)
+        frame.art:Show()
+        -- Match the native atlas proportions instead of stretching its artwork.
+        for _, pair in ipairs({{frame.bg, style.atlas.background}, {frame.art, style.atlas.frame}}) do
+            local info = C_Texture.GetAtlasInfo(pair[2])
+            local fill = C_Texture.GetAtlasInfo(style.atlas.fill)
+            pair[1]:ClearAllPoints()
+            pair[1]:SetPoint("CENTER")
+            pair[1]:SetSize(frame:GetWidth() * info.width / fill.width, frame:GetHeight() * info.height / fill.height)
+        end
+        frame.border:SetBackdrop(nil)
+    else
+        frame.bg:SetColorTexture(unpack(theme.background))
+        frame.art:Hide()
+        border(frame.border, theme)
+    end
+end
+local function hasAtlases(style)
+    if not style.atlas or not C_Texture or not C_Texture.GetAtlasInfo then return false end
+    for _, atlas in pairs(style.atlas) do if not C_Texture.GetAtlasInfo(atlas) then return false end end
+    return true
 end
 function ns.CreateFlyingFrame()
     local frame = CreateFrame("Frame", "SlashikFlyingFrame", UIParent)
@@ -17,29 +54,39 @@ function ns.CreateFlyingFrame()
     frame:SetMovable(true)
     frame:SetClampedToScreen(true)
     frame:RegisterForDrag("LeftButton")
-    local speed = bar(frame, 0.05, 0.67, 0.76)
+    local speed = bar(frame)
     speed.text = speed:CreateFontString(nil, "OVERLAY")
-    speed.text:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE")
     speed.text:SetPoint("CENTER")
     local vigor, wind = {}, {}
     local icon = CreateFrame("Frame", nil, frame)
     icon.tex = icon:CreateTexture(nil, "ARTWORK")
     icon.tex:SetAllPoints()
-    icon.tex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     icon.cd = CreateFrame("Cooldown", nil, icon, "CooldownFrameTemplate")
     icon.cd:SetAllPoints()
     icon.cd:SetDrawEdge(false)
+    icon.border = CreateFrame("Frame", nil, icon.cd, "BackdropTemplate")
+    icon.border:SetAllPoints(icon)
     local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     hint:SetPoint("BOTTOM", frame, "TOP", 0, 7)
     hint:SetText("SlashikFlying - drag to move; /sf lock")
 
-    local function layoutRow(row, count, y, height, color)
-        local width = ns.GetSettings().width
+    local theme
+    local function layoutRow(row, count, style)
+        local width = theme.width
+        local slot = (width - (count - 1) * style.gap) / count
+        local native = hasAtlases(style)
+        local w, h = slot, style.height
+        if native then
+            local info = C_Texture.GetAtlasInfo(style.atlas.fill)
+            h = math.min(h, slot * info.height / info.width)
+            w = h * info.width / info.height
+        end
         for i = 1, count do
-            if not row[i] then row[i] = bar(frame, unpack(color)) end
+            if not row[i] then row[i] = bar(frame) end
             row[i]:ClearAllPoints()
-            row[i]:SetPoint("TOPLEFT", frame, "TOPLEFT", (i - 1) * (width + 2) / count, y)
-            row[i]:SetSize((width - (count - 1) * 2) / count, height)
+            row[i]:SetPoint("TOPLEFT", frame, "TOPLEFT", (i - 1) * (slot + style.gap) + (slot - w) / 2, style.y)
+            row[i]:SetSize(w, h)
+            styleBar(row[i], theme, style, native)
             row[i]:Show()
         end
         for i = count + 1, #row do row[i]:Hide() end
@@ -47,17 +94,24 @@ function ns.CreateFlyingFrame()
     end
     function frame:ApplySettings()
         local s = ns.GetSettings()
+        theme = ns.GetTheme()
         self:SetScale(s.scale)
-        self:SetSize(s.width + 34, 32)
+        self:SetSize(theme.width + theme.gap + theme.icon.size, theme.height)
         self:ClearAllPoints()
         self:SetPoint("CENTER", UIParent, "CENTER", s.x, s.y)
         speed:ClearAllPoints()
         speed:SetPoint("BOTTOMLEFT")
-        speed:SetSize(s.width, 14)
-        layoutRow(wind, wind.count or 3, 0, 6, {0.64, 0.32, 0.90})
-        layoutRow(vigor, vigor.count or 6, -8, 8, {0.40, 0.58, 0.72})
-        icon:SetPoint("TOPLEFT", self, "TOPLEFT", s.width + 2, 0)
-        icon:SetSize(32, 32)
+        speed:SetSize(theme.width, theme.speed.height)
+        styleBar(speed, theme, theme.speed, false)
+        speed.text:SetFont(theme.font, theme.fontSize, theme.fontFlags)
+        layoutRow(wind, wind.count or 3, theme.wind)
+        layoutRow(vigor, vigor.count or 6, theme.vigor)
+        icon:ClearAllPoints()
+        icon:SetPoint("RIGHT", self, "RIGHT", 0, 0)
+        icon:SetSize(theme.icon.size, theme.icon.size)
+        local crop = theme.icon.crop
+        icon.tex:SetTexCoord(crop, 1 - crop, crop, 1 - crop)
+        border(icon.border, theme)
         self:EnableMouse(self.unlocked == true)
         hint:SetShown(self.unlocked == true)
     end
@@ -71,11 +125,11 @@ function ns.CreateFlyingFrame()
         s.x, s.y = x - ux * ratio, y - uy * ratio
         self:ApplySettings()
     end)
-    local function updateRow(row, spell, fallback, y, height, color)
+    local function updateRow(row, spell, fallback, style)
         local info = C_Spell.GetSpellCharges(spell)
         local count = math.floor(ns.Number(info and info.maxCharges, fallback))
         count = math.max(1, math.min(12, count))
-        if row.count ~= count then layoutRow(row, count, y, height, color) end
+        if row.count ~= count then layoutRow(row, count, style) end
         local current = ns.Number(info and info.currentCharges, 0)
         local start = ns.Number(info and info.cooldownStartTime, 0)
         local duration = ns.Number(info and info.cooldownDuration, 0)
@@ -98,8 +152,8 @@ function ns.CreateFlyingFrame()
             local percent = gliding and ns.Number(velocity, 0) / 7 * 100 or 0
             speed:SetValue(math.max(0, math.min(1, percent / 1300)))
             speed.text:SetFormattedText("%d%%", math.floor(percent + 0.5))
-            updateRow(vigor, ASCENT, 6, -8, 8, {0.40, 0.58, 0.72})
-            updateRow(wind, SECOND_WIND, 3, 0, 6, {0.64, 0.32, 0.90})
+            updateRow(vigor, ASCENT, 6, theme.vigor)
+            updateRow(wind, SECOND_WIND, 3, theme.wind)
             local cd = C_Spell.GetSpellCooldown(SURGE)
             local start = ns.Number(cd and cd.startTime, 0)
             local duration = ns.Number(cd and cd.duration, 0)

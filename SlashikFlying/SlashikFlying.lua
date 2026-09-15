@@ -3,8 +3,9 @@ local hud
 local function message(text) print("|cff55ddffSlashikFlying:|r " .. text) end
 local function help()
     message("/sf unlock - drag a preview; /sf lock - save and return to automatic display.")
-    message("/sf test - toggle preview; /sf width <120-600>; /sf scale <0.5-3>.")
+    message("/sf test - toggle preview; /sf width <120-600> (current theme); /sf scale <0.5-3>.")
     message("/sf enabled <on|off>; /sf combat <on|off> - hide in combat.")
+    message("/sf theme <" .. ns.ThemeList() .. "> - switch appearance; /sf theme - show selection.")
     message("/sf settings - show settings; /sf settings default - reset everything.")
 end
 local events = CreateFrame("Frame")
@@ -36,13 +37,20 @@ SlashCmdList.SLASHIKFLYING = function(input)
         hud.unlocked = false
         if hud.preview then s.enabled = true end
         message(hud.preview and "Preview on. /sf test to exit." or "Preview off.")
+    elseif command == "theme" then
+        if value == "" then
+            message("Theme: " .. s.themeId .. ". Available: " .. ns.ThemeList()); return
+        end
+        if not ns.Themes[value] then message("Unknown theme. Available: " .. ns.ThemeList()); return end
+        s.themeId = value
+        message("Theme: " .. ns.Themes[value].name)
     elseif command == "width" or command == "scale" then
         local number = tonumber(value)
         local low, high = command == "width" and 120 or 0.5, command == "width" and 600 or 3
         if not number or number ~= number or number < low or number > high then
             message("Use /sf " .. command .. " <" .. low .. "-" .. high .. ">."); return
         end
-        s[command] = number
+        if command == "width" then ns.GetTheme().width = number else s.scale = number end
     elseif command == "enabled" or command == "combat" then
         if value ~= "on" and value ~= "off" then message("Use on or off."); return end
         s[command == "enabled" and "enabled" or "hideInCombat"] = value == "on"
@@ -52,7 +60,7 @@ SlashCmdList.SLASHIKFLYING = function(input)
             hud.preview, hud.unlocked = false, false
             message("Settings and position reset.")
         else
-            message(string.format("Enabled: %s; width: %g; scale: %g; hide in combat: %s.", tostring(s.enabled), s.width, s.scale, tostring(s.hideInCombat)))
+            message(string.format("Theme: %s; enabled: %s; width: %g; scale: %g; hide in combat: %s.", s.themeId, tostring(s.enabled), ns.GetTheme().width, s.scale, tostring(s.hideInCombat)))
         end
     else help(); return end
     hud:ApplySettings()

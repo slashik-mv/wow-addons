@@ -2,10 +2,11 @@
 ## Title: Slashik Flying
 ## Notes: Compact Skyriding vigor, Second Wind, speed, and Whirling Surge display.
 ## Author: Slashik
-## Version: 1.1
+## Version: 1.2
 ## SavedVariables: SlashikFlyingDB
 ## IconTexture: Interface\AddOns\SlashikFlying\addonIcon
 
+Themes.lua
 SettingsHelper.lua
 FlyingFrameHelper.lua
 SlashikFlying.lua

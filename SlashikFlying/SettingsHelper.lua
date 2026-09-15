@@ -1,6 +1,6 @@
 local _, ns = ...
-local defaults = { enabled = true, width = 240, scale = 1, x = 0, y = -100, hideInCombat = false }
-local limits = { width = {120, 600}, scale = {0.5, 3}, x = {-10000, 10000}, y = {-10000, 10000} }
+local defaults = { enabled = true, scale = 1, x = 0, y = -100, hideInCombat = false }
+local limits = { scale = {0.5, 3}, x = {-10000, 10000}, y = {-10000, 10000} }
 function ns.GetSettings()
     if type(SlashikFlyingDB) ~= "table" then SlashikFlyingDB = {} end
     if type(SlashikFlyingDB.settings) ~= "table" then SlashikFlyingDB.settings = {} end
@@ -12,6 +12,7 @@ function ns.GetSettings()
             settings[key] = default
         end
     end
+    ns.InitializeThemes(settings)
     return settings
 end
 function ns.ResetSettings()
