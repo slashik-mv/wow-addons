@@ -75,7 +75,7 @@ function addon:CreateWindow()
   content:SetSize(TABLE_WIDTH, 1)
   scroll:SetScrollChild(content)
   frame.content, frame.rows = content, {}
-  frame.empty = Text(content, "GameFontHighlight", 12, -24, 870, "Log into a level-90 character to add it to your checklist.")
+  frame.empty = Text(content, "GameFontHighlight", 12, -24, 870, "Log into a level-80 or higher character to add it to your checklist.")
   Text(frame, "GameFontDisableSmall", 22, -506, 900, "Manual checkboxes • Progress resets every week • Use Up / Dn to reorder characters")
   local settings = Button(frame, "Settings", 110, 25, function() self:OpenSettings() end)
   settings:SetPoint("BOTTOMRIGHT", -22, 18)
@@ -131,7 +131,7 @@ function addon:RefreshWindow()
     row.guid = guid
     local current = guid == UnitGUID("player")
     row.background:SetColorTexture(current and 0.18 or 0.12, current and 0.16 or 0.14, 0.19, current and 0.9 or (index % 2 == 0 and 0.55 or 0.2))
-    row.name:SetText(character.name .. (current and " (you)" or ""))
+    row.name:SetText("(" .. (character.level or 90) .. ") " .. character.name .. (current and " (you)" or ""))
     local color = RAID_CLASS_COLORS[character.class]
     if color then row.name:SetTextColor(color.r, color.g, color.b) end
     row.realm:SetText(character.realm)

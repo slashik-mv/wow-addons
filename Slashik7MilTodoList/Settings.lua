@@ -5,7 +5,6 @@ addon.tasks = {
   { id = "abundance", label = "Abundance\n20,000 points" },
   { id = "haranir", label = "Legends of\nthe Haranir" },
   { id = "liadrin", label = "Lady Liadrin’s\nApex Cache #1" },
-  { id = "liadrin2", label = "Lady Liadrin’s\nApex Cache #2" },
   { id = "assignment1", label = "Special\nAssignment #1" },
   { id = "assignment2", label = "Special\nAssignment #2" },
   { id = "assignment3", label = "Special Assignment #3\n(Coiled Isle)" },

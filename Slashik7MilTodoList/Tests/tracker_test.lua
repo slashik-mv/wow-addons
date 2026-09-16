@@ -14,12 +14,19 @@ assert(loadfile("Tracker.lua"))("Slashik7MilTodoList", addon)
 addon:InitializeDatabase()
 addon:CheckWeeklyReset()
 assert(addon.db.nextReset == 1100)
-level = 89
+level = 79
 addon:RegisterCharacter()
-assert(#addon.db.order == 0, "below-cap alt must not register")
-addon:RegisterCharacter(90)
-addon:RegisterCharacter(90)
+assert(#addon.db.order == 0, "below-80 alt must not register")
+addon:RegisterCharacter(80)
+addon:RegisterCharacter(80)
 assert(#addon.db.order == 1, "level-up registers once")
+assert(addon.db.characters[guid].level == 80)
+addon.db.characters[guid].completed.liadrin = true
+addon:RegisterCharacter(85)
+assert(addon.db.characters[guid].level == 85)
+assert(#addon.db.order == 1 and addon.db.characters[guid].completed.liadrin)
+addon:RegisterCharacter(90)
+assert(addon.db.characters[guid].level == 90)
 level, guid = 90, "Player-B"
 addon:RegisterCharacter()
 assert(#addon.db.order == 2)

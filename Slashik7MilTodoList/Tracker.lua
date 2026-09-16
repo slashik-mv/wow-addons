@@ -18,9 +18,8 @@ function addon:CheckWeeklyReset()
 end
 
 function addon:RegisterCharacter(level)
-  -- Midnight's cap is 90. Account expansion ownership must not register level-80 alts.
-  local maxLevel = GetMaxLevelForLatestExpansion and GetMaxLevelForLatestExpansion() or 90
-  if (level or UnitLevel("player")) < maxLevel then return end
+  local characterLevel = level or UnitLevel("player")
+  if characterLevel < 80 then return end
   local guid = UnitGUID("player")
   if not guid then return end
   local name, realm = UnitFullName("player")
@@ -31,6 +30,7 @@ function addon:RegisterCharacter(level)
     self.db.characters[guid] = character
     table.insert(self.db.order, guid)
   end
+  character.level = characterLevel
   character.name, character.realm, character.class = name, realm or GetRealmName(), class
 end
 
