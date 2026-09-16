@@ -6,6 +6,7 @@ local function help()
     message("/sf test - toggle preview; /sf width <120-600> (current theme); /sf scale <0.5-3>.")
     message("/sf enabled <on|off>; /sf combat <on|off> - hide in combat.")
     message("/sf theme <" .. ns.ThemeList() .. "> - switch appearance; /sf theme - show selection.")
+    message("/sf map <on|off>; /sf map size <24-80>; /sf map color <cyan|yellow|white|purple>; /sf map pulse <on|off>.")
     message("/sf settings - show settings; /sf settings default - reset everything.")
 end
 local events = CreateFrame("Frame")
@@ -26,7 +27,29 @@ SlashCmdList.SLASHIKFLYING = function(input)
     if not hud then return end
     local command, value = input:lower():match("^%s*(%S*)%s*(.-)%s*$")
     local s = ns.GetSettings()
-    if command == "unlock" then
+    if command == "map" then
+        local option, argument = value:match("^(%S*)%s*(.-)$")
+        local m = ns.GetMapHighlightSettings()
+        if option == "on" or option == "off" then
+            m.enabled = option == "on"
+        elseif option == "size" then
+            local n = tonumber(argument)
+            if not n or n ~= n or n < 24 or n > 80 then message("Use /sf map size <24-80>."); return end
+            m.size = n
+        elseif option == "color" then
+            if argument ~= "cyan" and argument ~= "yellow" and argument ~= "white" and argument ~= "purple" then
+                message("Colors: cyan, yellow, white, purple."); return
+            end
+            m.color = argument
+        elseif option == "pulse" and (argument == "on" or argument == "off") then
+            m.pulse = argument == "on"
+        elseif option ~= "" then
+            message("Use /sf map <on|off|size|color|pulse>."); return
+        end
+        ns.RefreshMapHighlight()
+        message(string.format("Map highlight: %s; size: %g; color: %s; pulse: %s.", tostring(m.enabled), m.size, m.color, tostring(m.pulse)))
+        return
+    elseif command == "unlock" then
         hud.unlocked = true
         s.enabled = true
         message("Drag the display, then use /sf lock.")
@@ -58,6 +81,7 @@ SlashCmdList.SLASHIKFLYING = function(input)
         if value == "default" then
             s = ns.ResetSettings()
             hud.preview, hud.unlocked = false, false
+            ns.RefreshMapHighlight()
             message("Settings and position reset.")
         else
             message(string.format("Theme: %s; enabled: %s; width: %g; scale: %g; hide in combat: %s.", s.themeId, tostring(s.enabled), ns.GetTheme().width, s.scale, tostring(s.hideInCombat)))

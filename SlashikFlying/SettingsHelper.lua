@@ -25,3 +25,16 @@ function ns.Number(value, fallback)
     if type(value) ~= "number" or value ~= value then return fallback end
     return value
 end
+
+-- Map highlighting is independent of flying themes and HUD enablement.
+function ns.GetMapHighlightSettings()
+    local s = ns.GetSettings()
+    if type(s.mapHighlight) ~= "table" then s.mapHighlight = {} end
+    local m = s.mapHighlight
+    if type(m.enabled) ~= "boolean" then m.enabled = true end
+    if type(m.pulse) ~= "boolean" then m.pulse = true end
+    if type(m.size) ~= "number" or m.size ~= m.size or m.size < 24 or m.size > 80 then m.size = 36 end
+    local colors = {cyan = true, yellow = true, white = true, purple = true}
+    if type(m.color) ~= "string" or not colors[m.color] then m.color = "cyan" end
+    return m
+end

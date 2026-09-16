@@ -45,3 +45,20 @@ Copy this folder to `_retail_/Interface/AddOns/SlashikFlying`, then restart the 
 Restricted spell values are displayed as unavailable/empty rather than used in unsafe arithmetic. Actual client rendering and mount behavior require the in-game checks above.
 
 API reference: Blizzard's generated spell API documentation, mirrored at https://github.com/Gethe/wow-ui-source/blob/live/Interface/AddOns/Blizzard_APIDocumentationGenerated/SpellSharedDocumentation.lua .
+
+
+## World-map player highlight
+
+A cyan ring with a dark outline helps locate your character's arrow. Three short expanding pulses play when the world map opens, then the steady ring remains. The hollow center keeps the arrow's direction visible, and the ring does not intercept map clicks.
+
+This feature is enabled by default and works unmounted, independently of the flying HUD and its themes. It follows the position on the map currently being viewed, hides when that map has no available player position, and maintains its size while zooming. It performs no continuous updates while the map is closed or the feature is disabled.
+
+- `/sf map`: show current map-highlight settings.
+- `/sf map on` or `/sf map off`: enable or disable.
+- `/sf map size 36`: ring diameter, from 24 to 80 UI units.
+- `/sf map color cyan`: choose cyan, yellow, white, or purple.
+- `/sf map pulse on` or `/sf map pulse off`: control the brief opening pulse.
+
+Preferences are account-wide under `settings.mapHighlight`. `/sf settings default` resets these along with other addon preferences.
+
+In-game checks: open/close the world map while mounted and unmounted; move, zoom and pan; browse other zones and dungeon floors; test fullscreen/windowed maps, map clicks, and settings persistence after reload. The feature intentionally hides if player coordinates are unavailable or restricted.
