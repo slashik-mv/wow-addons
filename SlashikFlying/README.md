@@ -51,7 +51,7 @@ API reference: Blizzard's generated spell API documentation, mirrored at https:/
 
 A cyan ring with a dark outline helps locate your character's arrow. Three short expanding pulses play when the world map opens, then the steady ring remains. The hollow center keeps the arrow's direction visible, and the ring does not intercept map clicks.
 
-This feature is enabled by default and works unmounted, independently of the flying HUD and its themes. It follows the position on the map currently being viewed, hides when that map has no available player position, and maintains its size while zooming. It performs no continuous updates while the map is closed or the feature is disabled.
+This feature is enabled by default and works unmounted, independently of the flying HUD and its themes. It uses Blizzard's native player-position renderer on the map currently being viewed, so it can follow the player arrow even when Lua coordinate queries are unavailable. It maintains its size while zooming. It performs no continuous updates while the map is closed or the feature is disabled.
 
 - `/sf map`: show current map-highlight settings.
 - `/sf map on` or `/sf map off`: enable or disable.
@@ -61,4 +61,4 @@ This feature is enabled by default and works unmounted, independently of the fly
 
 Preferences are account-wide under `settings.mapHighlight`. `/sf settings default` resets these along with other addon preferences.
 
-In-game checks: open/close the world map while mounted and unmounted; move, zoom and pan; browse other zones and dungeon floors; test fullscreen/windowed maps, map clicks, and settings persistence after reload. The feature intentionally hides if player coordinates are unavailable or restricted.
+In-game checks: open/close the world map while mounted and unmounted; move, zoom and pan; browse other zones and dungeon floors; test fullscreen/windowed maps, map clicks, and settings persistence after reload. The ring follows native player visibility and waits for Blizzard's map pin when changing maps; it no longer depends on Lua player-coordinate queries.
