@@ -2,7 +2,7 @@
 local announcementFrame
 local hideTimer
 
-function showRaidBreakKeystoneAnnouncement(dungeon, level, owner)
+function showRaidBreakKeystoneAnnouncement(dungeon, level, owner, insertReminder)
     if not announcementFrame then
         announcementFrame = CreateFrame("Frame", nil, UIParent)
         announcementFrame:SetSize(800, 240)
@@ -21,8 +21,10 @@ function showRaidBreakKeystoneAnnouncement(dungeon, level, owner)
         announcementFrame.subtitle = subtitle
     end
     if hideTimer then hideTimer:Cancel() end
-    announcementFrame.title:SetText(string.format("Next key: %s +%d", dungeon, level))
-    announcementFrame.subtitle:SetText("Key owner: " .. owner)
+    announcementFrame.title:SetText(insertReminder and (owner .. " — insert your keystone!")
+        or string.format("Next key: %s +%d", dungeon, level))
+    announcementFrame.subtitle:SetText(insertReminder and string.format("+%d %s", level, dungeon)
+        or ("Key owner: " .. owner))
     announcementFrame:Show()
     hideTimer = C_Timer.NewTimer(7, function()
         announcementFrame:Hide()
