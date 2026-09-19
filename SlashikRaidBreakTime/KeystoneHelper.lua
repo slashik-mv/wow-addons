@@ -205,6 +205,20 @@ function createKeystoneHelper(openGuildKeys)
             guildKeys:SetScript("OnClick", function()
                 if openGuildKeys then openGuildKeys() end
             end)
+            local reminder = window:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            reminder:SetText("Don't forget: in a world where you can be anything, be kind.")
+            -- Fit on the title line, ending at the Teleport column's right edge (654 + 82).
+            local reminderLeft = 18 + title:GetStringWidth() + 16 + 100 + 12
+            local reminderWidth = 736 - reminderLeft
+            local font, fontSize, fontFlags = reminder:GetFont()
+            local textWidth = reminder:GetStringWidth()
+            if textWidth > reminderWidth then
+                reminder:SetFont(font, fontSize * reminderWidth / textWidth, fontFlags)
+            end
+            reminder:SetPoint("LEFT", window, "TOPLEFT", reminderLeft, -27)
+            reminder:SetSize(reminderWidth, 24)
+            reminder:SetJustifyH("RIGHT")
+            reminder:SetWordWrap(false)
             local close = CreateFrame("Button", nil, window, "UIPanelCloseButton")
             close:SetPoint("TOPRIGHT", -4, -4)
             window.rows = {}
