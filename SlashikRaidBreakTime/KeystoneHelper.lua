@@ -80,17 +80,18 @@ function createKeystoneHelper(openGuildKeys)
     local function render()
         if not window or not window.initialized or not window:IsShown() or InCombatLockdown() then return end
         local members = partyMembers()
+        window.layout:apply(#members)
         for i, row in ipairs(window.rows) do
             local member = members[i]
             local memberKey = member and results[member.name]
-            row.teleport:SetShown(member ~= nil)
+            row.teleport:SetShown(member ~= nil and not window.compact)
             updateDungeonTeleportButton(row.teleport, memberKey and memberKey.mapID)
             row.member = member
-            row.post:SetShown(member ~= nil)
+            row.post:SetShown(member ~= nil and not window.compact)
             row.post:Disable()
-            row.go:SetShown(member ~= nil)
+            row.go:SetShown(member ~= nil and not window.compact)
             row.go:Disable()
-            row.name:SetText(member and member.name or "")
+            row.name:SetText(member and (window.compact and Ambiguate(member.name, "short") or member.name) or "")
             -- Reset reused rows before applying the current party member's class color.
             row.name:SetTextColor(1, 1, 1)
             if member then
@@ -167,36 +168,28 @@ function createKeystoneHelper(openGuildKeys)
             -- Secure spell buttons protect their parent: hide it safely during combat.
             RegisterStateDriver(window, "visibility", "[combat] hide;")
             window:SetClampedToScreen(true)
-            local position = SlashikRaidBreakTimeDB and SlashikRaidBreakTimeDB.keystoneWindowPosition
-            local anchors = { TOPLEFT = true, TOP = true, TOPRIGHT = true, LEFT = true,
-                CENTER = true, RIGHT = true, BOTTOMLEFT = true, BOTTOM = true, BOTTOMRIGHT = true }
-            if type(position) == "table" and anchors[position.point] and anchors[position.relativePoint]
-                and type(position.x) == "number" and type(position.y) == "number" then
-                window:SetPoint(position.point, UIParent, position.relativePoint, position.x, position.y)
-            else
-                window:SetPoint("CENTER")
-            end
+            window.compact = SlashikRaidBreakTimeDB and SlashikRaidBreakTimeDB.compactKeystones == true or false
+            window.layout = createKeystoneLayoutHelper(window)
+            window.layout:restorePosition()
             window:SetFrameStrata("DIALOG")
             window:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark" })
             window:SetBackdropColor(0, 0, 0, 0.95)
             window:SetMovable(true)
             window:EnableMouse(true)
             window:RegisterForDrag("LeftButton")
-            window:SetScript("OnDragStart", window.StartMoving)
+            window:SetScript("OnDragStart", function(self)
+                if not InCombatLockdown() then self:StartMoving() end
+            end)
             window:SetScript("OnDragStop", function(self)
                 self:StopMovingOrSizing()
-                local point, _, relativePoint, x, y = self:GetPoint()
-                -- Store only serializable anchor values, not the parent frame itself.
-                SlashikRaidBreakTimeDB = SlashikRaidBreakTimeDB or {}
-                SlashikRaidBreakTimeDB.keystoneWindowPosition = {
-                    point = point, relativePoint = relativePoint, x = x, y = y,
-                }
+                window.layout:savePosition()
             end)
             window:SetScript("OnHide", cancelPendingRefresh)
             table.insert(UISpecialFrames, "SlashikRaidBreakTimeKeystoneFrame")
             local title = window:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
             title:SetPoint("TOPLEFT", 18, -18)
             title:SetText("Party Keystones")
+            window.title = title
             local guildKeys = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
             guildKeys:SetSize(100, 24)
             -- Anchor to the frame, keeping clear of secure buttons' anchor chains.
@@ -325,8 +318,27 @@ function createKeystoneHelper(openGuildKeys)
             window.keystoneCaption:SetWidth(100)
             window.keystoneCaption:SetJustifyH("CENTER")
             window.keystoneCaption:SetText("Never stop pushing!")
+            window.refresh = refresh
+            window.normalOnly = { guildKeys, reminder, roll, window.hint, window.autoOpen,
+                autoOpenLabel, window.keystoneArt, window.keystoneCaption }
+            window.modeButton = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
+            window.modeButton:SetSize(90, 26)
+            window.modeButton:SetPoint("BOTTOMLEFT", 18, 20)
+            -- Leave the existing footer controls untouched in normal mode.
+            window.hint:ClearAllPoints()
+            window.hint:SetPoint("BOTTOMLEFT", 18, 3)
+            window.modeButton:SetScript("OnClick", function()
+                if InCombatLockdown() then return end
+                window:StopMovingOrSizing()
+                window.layout:savePosition()
+                window.compact = not window.compact
+                SlashikRaidBreakTimeDB.compactKeystones = window.compact
+                render()
+                window.layout:restorePosition()
+            end)
             window.initialized = true
         end
+        window.layout:apply(#partyMembers())
         window.autoOpen:SetChecked(SlashikRaidBreakTimeDB and SlashikRaidBreakTimeDB.autoOpenKeystones == true)
         window:Show()
         self:refresh()
