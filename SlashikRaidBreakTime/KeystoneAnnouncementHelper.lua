@@ -48,7 +48,7 @@ function announceKeystoneToParty(owner, mapID, level)
     local displayOwner = Ambiguate(owner, "none")
     C_ChatInfo.SendChatMessage(string.format("Let's run %s's key: %s +%d!", displayOwner, dungeon, level), channel)
     C_ChatInfo.SendAddonMessage(PREFIX, string.format("%d:%d:%s", mapID, level, owner), channel)
-    showRaidBreakKeystoneAnnouncement(dungeon, level, displayOwner)
+    showRaidBreakKeystoneAnnouncement(dungeon, level, displayOwner, false, mapID)
 end
 
 local events = CreateFrame("Frame")
@@ -73,6 +73,6 @@ events:SetScript("OnEvent", function(_, event, prefix, message, channel, sender)
         if GetTime() < (lastReceived[sender] or 0) then return end
         lastReceived[sender] = GetTime() + COOLDOWN
         saveSelectedKeystone(owner, mapID, level)
-        showRaidBreakKeystoneAnnouncement(dungeon, level, Ambiguate(owner, "none"))
+        showRaidBreakKeystoneAnnouncement(dungeon, level, Ambiguate(owner, "none"), false, mapID)
     end
 end)
