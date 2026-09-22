@@ -34,11 +34,12 @@ function createGuildKeystoneHelper()
         end)
         local pages = math.max(1, math.ceil(#members / PAGE_SIZE))
         page = math.min(page, pages)
+        window.layout:apply(math.min(PAGE_SIZE, math.max(0, #members - (page - 1) * PAGE_SIZE)))
         for i, row in ipairs(window.rows) do
             local member = members[(page - 1) * PAGE_SIZE + i]
             local key = member and results[member.name]
             row.member = member
-            row.name:SetText(member and member.name or "")
+            row.name:SetText(member and (window.compact and Ambiguate(member.name, "short") or member.name) or "")
             local color = member and member.class and RAID_CLASS_COLORS[member.class]
             row.name:SetTextColor(color and color.r or 1, color and color.g or 1, color and color.b or 1)
             local text = ""
@@ -48,10 +49,10 @@ function createGuildKeystoneHelper()
                 else text = string.format("+%d  %s", key.level, C_ChallengeMode.GetMapUIInfo(key.mapID) or ("Dungeon " .. key.mapID)) end
             end
             row.key:SetText(text)
-            row.whisper:SetShown(member ~= nil)
+            row.whisper:SetShown(member ~= nil and not window.compact)
             row.whisper:SetEnabled(key ~= nil and key.mapID > 0 and key.level > 0
                 and C_ChallengeMode.GetMapUIInfo(key.mapID) ~= nil)
-            row.teleport:SetShown(member ~= nil)
+            row.teleport:SetShown(member ~= nil and not window.compact)
             updateDungeonTeleportButton(row.teleport, key and key.mapID)
         end
         window.status:SetText(IsInGuild() and string.format("%d online — Page %d/%d", #members, page, pages) or "You are not in a guild.")
@@ -97,27 +98,25 @@ function createGuildKeystoneHelper()
             window:SetFrameStrata("DIALOG")
             window:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark" })
             window:SetBackdropColor(0, 0, 0, 0.95)
-            local position = SlashikRaidBreakTimeDB and SlashikRaidBreakTimeDB.guildKeystoneWindowPosition
-            local anchors = { TOPLEFT = true, TOP = true, TOPRIGHT = true, LEFT = true, CENTER = true, RIGHT = true, BOTTOMLEFT = true, BOTTOM = true, BOTTOMRIGHT = true }
-            if type(position) == "table" and anchors[position.point] and anchors[position.relativePoint]
-                and type(position.x) == "number" and type(position.y) == "number" then
-                window:SetPoint(position.point, UIParent, position.relativePoint, position.x, position.y)
-            else window:SetPoint("CENTER") end
+            window.compact = SlashikRaidBreakTimeDB and SlashikRaidBreakTimeDB.compactGuildKeystones == true or false
+            window.layout = createGuildKeystoneLayoutHelper(window)
+            window.layout:restorePosition()
             window:SetMovable(true)
             window:EnableMouse(true)
             window:RegisterForDrag("LeftButton")
-            window:SetScript("OnDragStart", window.StartMoving)
+            window:SetScript("OnDragStart", function(self)
+                if not InCombatLockdown() then self:StartMoving() end
+            end)
             window:SetScript("OnDragStop", function(self)
                 self:StopMovingOrSizing()
-                local point, _, relativePoint, x, y = self:GetPoint()
-                SlashikRaidBreakTimeDB = SlashikRaidBreakTimeDB or {}
-                SlashikRaidBreakTimeDB.guildKeystoneWindowPosition = { point = point, relativePoint = relativePoint, x = x, y = y }
+                window.layout:savePosition()
             end)
             RegisterStateDriver(window, "visibility", "[combat] hide;")
             table.insert(UISpecialFrames, "SlashikRaidBreakTimeGuildKeystoneFrame")
             local title = window:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
             title:SetPoint("TOPLEFT", 18, -18)
             title:SetText("Guild Keystones")
+            window.title = title
             local close = CreateFrame("Button", nil, window, "UIPanelCloseButton")
             close:SetPoint("TOPRIGHT", -4, -4)
             window.rows = {}
@@ -157,7 +156,16 @@ function createGuildKeystoneHelper()
             end
             window.previous = button("Previous", -234, function() if not InCombatLockdown() then page = math.max(1, page - 1); render() end end)
             window.next = button("Next", -126, function() if not InCombatLockdown() then page = math.min(math.max(1, math.ceil(#members / PAGE_SIZE)), page + 1); render() end end)
-            button("Refresh", -18, function() helper:refresh() end)
+            window.refresh = button("Refresh", -18, function() helper:refresh() end)
+            window.modeButton = button("Compact", -342, function()
+                if InCombatLockdown() then return end
+                window:StopMovingOrSizing()
+                window.layout:savePosition()
+                window.compact = not window.compact
+                SlashikRaidBreakTimeDB.compactGuildKeystones = window.compact
+                render()
+                window.layout:restorePosition()
+            end)
             window.ready = true
         end
         window:Show()
