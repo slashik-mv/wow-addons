@@ -76,7 +76,9 @@ end
 
 SLASH_SLASHIKRAIDBREAKSETTINGS1 = "/srbt"
 local function printSettingsHelp()
-    print("|cff55ddffSlashik Raid Break Time settings:|r")
+    print("|cff55ddffSlashik Raid Break Time commands:|r")
+    print("|cffffcc00/srbt key|r - Open the party keystone window.")
+    print("|cffffcc00/srbt key guild|r - Open the guild keystone window.")
     print("|cffffcc00/srbt random <on|off>|r - Turn automatic image rotation on or off.")
     print("|cffffcc00/srbt timer <1-120>|r - Set how often images change, in minutes.")
     print("|cffffcc00/srbt audio <on|off>|r - Turn break-warning sounds on or off.")
