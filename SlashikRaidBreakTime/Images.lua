@@ -27,4 +27,5 @@ SlashikRaidBreakTimeImages = {
     "miztaxih-break.tga",
     "leilli-break.tga",
     "reggie-break.tga",
+    "padonk3-break.tga",
 }
