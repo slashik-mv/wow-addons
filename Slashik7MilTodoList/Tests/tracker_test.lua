@@ -3,12 +3,17 @@ local addon = {}
 local now, seconds, guid, level = 1000, 100, "Player-A", 90
 GetServerTime = function() return now end
 C_DateAndTime = { GetSecondsUntilWeeklyReset = function() return seconds end }
+local warbandMoney = 400000000
+C_Bank = { FetchDepositedMoney = function(bankType) assert(bankType == 2); return warbandMoney end }
+Enum = { BankType = { Account = 2 } }
 UnitGUID = function() return guid end
 UnitLevel = function() return level end
 GetMaxLevelForLatestExpansion = function() return 90 end
 UnitFullName = function() return "Alt", "Realm" end
 UnitClass = function() return "Mage", "MAGE" end
 GetRealmName = function() return "Realm" end
+local money = 123456789
+GetMoney = function() return money end
 assert(loadfile("Settings.lua"))("Slashik7MilTodoList", addon)
 assert(loadfile("Tracker.lua"))("Slashik7MilTodoList", addon)
 addon:InitializeDatabase()
@@ -21,6 +26,9 @@ addon:RegisterCharacter(80)
 addon:RegisterCharacter(80)
 assert(#addon.db.order == 1, "level-up registers once")
 assert(addon.db.characters[guid].level == 80)
+assert(addon.db.characters[guid].money == money)
+assert(addon:UpdateWarbandMoney())
+assert(addon.db.warbandMoney == warbandMoney)
 addon.db.characters[guid].completed.liadrin = true
 addon:RegisterCharacter(85)
 assert(addon.db.characters[guid].level == 85)
@@ -28,8 +36,20 @@ assert(#addon.db.order == 1 and addon.db.characters[guid].completed.liadrin)
 addon:RegisterCharacter(90)
 assert(addon.db.characters[guid].level == 90)
 level, guid = 90, "Player-B"
+money = 200000000
 addon:RegisterCharacter()
 assert(#addon.db.order == 2)
+local totalMoney, knownCharacters, hasWarbandMoney, characterMoney, trackedWarbandMoney = addon:GetTrackedMoney()
+assert(totalMoney == 723456789 and knownCharacters == 2 and hasWarbandMoney)
+assert(characterMoney == 323456789 and trackedWarbandMoney == 400000000)
+money = 150000000
+assert(addon:UpdateCharacterMoney())
+totalMoney, knownCharacters = addon:GetTrackedMoney()
+assert(totalMoney == 673456789 and knownCharacters == 2, "money gains and spending update the account total")
+warbandMoney = 450000000
+assert(addon:UpdateWarbandMoney())
+totalMoney = addon:GetTrackedMoney()
+assert(totalMoney == 723456789, "Warband Bank deposits and withdrawals update without losing account gold")
 addon:MoveCharacter(guid, -1)
 assert(addon.db.order[1] == guid)
 addon:MoveCharacter(guid, -1)

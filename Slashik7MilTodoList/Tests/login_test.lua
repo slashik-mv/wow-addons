@@ -11,6 +11,7 @@ addon.InitializeDatabase = function(self) self.db = { settings = { showOnLogin =
 addon.RegisterSettingsUI = function() end
 addon.CheckWeeklyReset = function() end
 addon.RegisterCharacter = function() end
+addon.UpdateWarbandMoney = function() return true end
 addon.RefreshWindow = function() end
 assert(loadfile('TrackerFrame.lua'))('Slashik7MilTodoList', addon)
 addon.RefreshWindow = function() end

@@ -32,6 +32,37 @@ function addon:RegisterCharacter(level)
   end
   character.level = characterLevel
   character.name, character.realm, character.class = name, realm or GetRealmName(), class
+  self:UpdateCharacterMoney()
+end
+
+function addon:UpdateCharacterMoney()
+  local guid = UnitGUID("player")
+  local character = guid and self.db.characters[guid]
+  if not character or not GetMoney then return false end
+  character.money = GetMoney()
+  return true
+end
+
+function addon:UpdateWarbandMoney()
+  if not C_Bank or not C_Bank.FetchDepositedMoney or not Enum or not Enum.BankType then
+    return false
+  end
+  local money = C_Bank.FetchDepositedMoney(Enum.BankType.Account)
+  if type(money) ~= "number" then return false end
+  self.db.warbandMoney = money
+  return true
+end
+
+function addon:GetTrackedMoney()
+  local total, knownCharacters = 0, 0
+  for _, character in pairs(self.db.characters) do
+    if type(character.money) == "number" then
+      total = total + character.money
+      knownCharacters = knownCharacters + 1
+    end
+  end
+  local warbandMoney = type(self.db.warbandMoney) == "number" and self.db.warbandMoney or 0
+  return total + warbandMoney, knownCharacters, self.db.warbandMoney ~= nil, total, warbandMoney
 end
 
 function addon:MoveCharacter(guid, offset)

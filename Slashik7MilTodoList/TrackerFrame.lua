@@ -2,6 +2,7 @@ local _, addon = ...
 local ROW_HEIGHT, NAME_WIDTH, COLUMN_WIDTH = 38, 280, 146
 local TABLE_WIDTH = NAME_WIDTH + #addon.tasks * COLUMN_WIDTH
 local WINDOW_WIDTH = TABLE_WIDTH + 60
+local GOLD_GOAL = 7000000 * 10000
 
 local function Text(parent, font, x, y, width, value)
   local text = parent:CreateFontString(nil, "OVERLAY", font)
@@ -60,9 +61,46 @@ function addon:CreateWindow()
   icon:SetTexture("Interface\\AddOns\\Slashik7MilTodoList\\addonIcon")
   Text(titleBar, "GameFontNormalLarge", 62, -10, 600, "Slashik7MilTodoList")
   Text(titleBar, "GameFontHighlightSmall", 62, -33, 700, "Your alt army. Your weekly checklist. One gold goal.")
+  local goldPanel = CreateFrame("Frame", nil, titleBar)
+  goldPanel:SetSize(430, 50)
+  goldPanel:SetPoint("TOPRIGHT", -8, -3)
+  goldPanel:EnableMouse(true)
+  goldPanel.characters = goldPanel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  goldPanel.characters:SetPoint("TOPRIGHT", 0, -1)
+  goldPanel.warband = goldPanel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  goldPanel.warband:SetPoint("TOPRIGHT", 0, -18)
+  goldPanel.total = goldPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  goldPanel.total:SetPoint("TOPRIGHT", 0, -36)
+  goldPanel:SetScript("OnEnter", function(panel)
+    GameTooltip:SetOwner(panel, "ANCHOR_BOTTOMRIGHT")
+    GameTooltip:SetText("Account gold tracker")
+    GameTooltip:AddLine("The total includes the Warband Bank and the latest balance seen on each tracked character.", 1, 1, 1, true)
+    GameTooltip:AddLine("Log into every level-80+ alt once to include its gold. Gains, purchases, bank deposits, and withdrawals update automatically.", 1, 0.82, 0, true)
+    GameTooltip:Show()
+  end)
+  goldPanel:SetScript("OnLeave", function() GameTooltip:Hide() end)
+  frame.goldPanel = goldPanel
   local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
   close:SetPoint("TOPRIGHT", -4, -4)
-  frame.summary = Text(frame, "GameFontHighlight", 22, -77, 900, "")
+  frame.summary = Text(frame, "GameFontHighlight", 22, -77, 500, "")
+  local goldBar = CreateFrame("StatusBar", nil, frame, "BackdropTemplate")
+  goldBar:SetSize(WINDOW_WIDTH - 600, 30)
+  goldBar:SetPoint("TOP", frame, "TOP", 70, -17)
+  goldBar:SetMinMaxValues(0, GOLD_GOAL)
+  goldBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+  goldBar:SetStatusBarColor(0.95, 0.68, 0.05)
+  goldBar:SetBackdrop({
+    bgFile = "Interface\\Buttons\\WHITE8X8",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    edgeSize = 10,
+    insets = { left = 2, right = 2, top = 2, bottom = 2 },
+  })
+  goldBar:SetBackdropColor(0.02, 0.025, 0.04, 0.9)
+  goldBar:SetBackdropBorderColor(0.55, 0.43, 0.18, 1)
+  goldBar.text = goldBar:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+  goldBar.text:SetPoint("CENTER")
+  goldBar.text:SetShadowOffset(1, -1)
+  frame.goldBar = goldBar
   Text(frame, "GameFontNormal", 22, -114, NAME_WIDTH, "Character / realm")
   for index, task in ipairs(self.tasks) do
     local label = Text(frame, "GameFontNormal", 22 + NAME_WIDTH + (index - 1) * COLUMN_WIDTH, -106, COLUMN_WIDTH, task.label)
@@ -146,6 +184,20 @@ function addon:RefreshWindow()
   end
   for index = count + 1, #frame.rows do frame.rows[index]:Hide() end
   frame.summary:SetText(string.format("%d characters  |  %d / %d weeklies completed", count, total, count * #self.tasks))
+  local trackedMoney, knownCharacters, hasWarbandMoney, characterMoney, warbandMoney = self:GetTrackedMoney()
+  local remainingMoney = math.max(0, GOLD_GOAL - trackedMoney)
+  local progress = math.min(100, trackedMoney / GOLD_GOAL * 100)
+  frame.goldPanel.characters:SetText("Characters: " .. GetCoinTextureString(characterMoney))
+  frame.goldPanel.warband:SetText(hasWarbandMoney
+    and ("Warband Bank: " .. GetCoinTextureString(warbandMoney))
+    or "Warband Bank: waiting for balance")
+  frame.goldPanel.total:SetText("Total: " .. GetCoinTextureString(trackedMoney))
+  frame.goldBar:SetValue(math.min(trackedMoney, GOLD_GOAL))
+  frame.goldBar:SetStatusBarColor(trackedMoney >= GOLD_GOAL and 0.2 or 0.95, trackedMoney >= GOLD_GOAL and 0.8 or 0.68, trackedMoney >= GOLD_GOAL and 0.25 or 0.05)
+  frame.goldBar.text:SetText(string.format(
+    "%.1f%%  •  %s gold remaining  •  %d/%d chars",
+    progress, BreakUpLargeNumbers(math.ceil(remainingMoney / 10000)), knownCharacters, count
+  ))
   local remaining = self.db.nextReset and math.max(0, self.db.nextReset - GetServerTime())
   frame.resetLabel:SetText(remaining and ("Weekly reset in " .. SecondsToTime(remaining)) or "Waiting for the server's weekly reset time...")
 end
