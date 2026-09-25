@@ -20,19 +20,26 @@ function createKeystoneHelper(openGuildKeys)
     local function fullName(unit)
         local name, realm = UnitFullName(unit)
         if not name then return nil end
-        return name .. "-" .. ((realm and realm ~= "") and realm or GetNormalizedRealmName())
+        realm = (realm and realm ~= "") and realm or GetNormalizedRealmName()
+        -- Realm information can be unavailable while loading or changing zones.
+        if not realm or realm == "" then return nil end
+        return name .. "-" .. realm
     end
 
     local function partyMembers()
-        local members = { { unit = "player", name = fullName("player") } }
+        local members = {}
+        local playerName = fullName("player")
+        local complete = playerName ~= nil
+        if playerName then members[1] = { unit = "player", name = playerName } end
         if not IsInRaid() then
             for i = 1, GetNumSubgroupMembers() do
                 local unit = "party" .. i
                 local name = fullName(unit)
                 if name then members[#members + 1] = { unit = unit, name = name } end
+                if not name then complete = false end
             end
         end
-        return members
+        return members, complete
     end
 
     local function groupChannel()
@@ -43,7 +50,10 @@ function createKeystoneHelper(openGuildKeys)
 
     local function updateRoster()
         local names, present = {}, {}
-        for _, member in ipairs(partyMembers()) do
+        local members, complete = partyMembers()
+        -- Do not discard cached keys just because a unit's name is still loading.
+        if not complete then return false end
+        for _, member in ipairs(members) do
             if member.name then
                 names[#names + 1] = member.name
                 present[member.name] = true
@@ -149,7 +159,10 @@ function createKeystoneHelper(openGuildKeys)
         updateRoster()
         nextRequestAt = GetTime() + 2
         local mapID, level = ownKey()
-        results[fullName("player")] = { mapID = mapID, level = level }
+        local playerName = fullName("player")
+        if playerName then results[playerName] = { mapID = mapID, level = level } end
+        local _, complete = partyMembers()
+        if not complete then scheduleRefresh() end
         render()
         -- LibKeystone handles requests, replies and network throttling itself.
         if not IsInRaid() then libKeystone.Request("PARTY") end
@@ -347,6 +360,8 @@ function createKeystoneHelper(openGuildKeys)
 
     local events = CreateFrame("Frame")
     events:RegisterEvent("PLAYER_LOGIN")
+    events:RegisterEvent("PLAYER_ENTERING_WORLD")
+    events:RegisterEvent("UNIT_NAME_UPDATE")
     events:RegisterEvent("GROUP_ROSTER_UPDATE")
     events:RegisterEvent("BAG_UPDATE_DELAYED")
     events:RegisterEvent("CHALLENGE_MODE_COMPLETED")
@@ -369,15 +384,16 @@ function createKeystoneHelper(openGuildKeys)
             if SlashikRaidBreakTimeDB and SlashikRaidBreakTimeDB.autoOpenKeystones == true then
                 helper:show()
             end
-        elseif event == "GROUP_ROSTER_UPDATE" then
+        elseif event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_ENTERING_WORLD" or event == "UNIT_NAME_UPDATE" then
             local changed = updateRoster()
-            if changed and window and window:IsShown() then
+            if (changed or event ~= "GROUP_ROSTER_UPDATE") and window and window:IsShown() then
                 scheduleRefresh()
             end
             render()
         elseif event == "BAG_UPDATE_DELAYED" then
             local mapID, level = ownKey()
-            results[fullName("player")] = { mapID = mapID, level = level }
+            local playerName = fullName("player")
+            if playerName then results[playerName] = { mapID = mapID, level = level } end
             render()
         end
     end)
