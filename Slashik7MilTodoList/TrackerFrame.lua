@@ -101,6 +101,24 @@ function addon:CreateWindow()
   goldBar.text:SetPoint("CENTER")
   goldBar.text:SetShadowOffset(1, -1)
   frame.goldBar = goldBar
+  frame.goldMilestones = {}
+  local function AddGoldMilestone(amount, label, red, green, blue)
+    local marker = goldBar:CreateTexture(nil, "OVERLAY")
+    marker:SetSize(2, 26)
+    marker:SetPoint("CENTER", goldBar, "LEFT", (amount / GOLD_GOAL) * (WINDOW_WIDTH - 600), 0)
+    marker:SetColorTexture(red, green, blue, 0.95)
+    local markerLabel = goldBar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    markerLabel:SetPoint("TOP", marker, "TOP", 0, -2)
+    markerLabel:SetText(label)
+    markerLabel:SetTextColor(red, green, blue)
+    markerLabel:SetShadowOffset(1, -1)
+    table.insert(frame.goldMilestones, {
+      amount = amount, marker = marker, label = markerLabel,
+      red = red, green = green, blue = blue,
+    })
+  end
+  AddGoldMilestone(5000000 * 10000, "5M", 0.25, 0.85, 1)
+  AddGoldMilestone(5500000 * 10000, "5.5M", 0.85, 0.5, 1)
   Text(frame, "GameFontNormal", 22, -114, NAME_WIDTH, "Character / realm")
   for index, task in ipairs(self.tasks) do
     local label = Text(frame, "GameFontNormal", 22 + NAME_WIDTH + (index - 1) * COLUMN_WIDTH, -106, COLUMN_WIDTH, task.label)
@@ -184,8 +202,7 @@ function addon:RefreshWindow()
   end
   for index = count + 1, #frame.rows do frame.rows[index]:Hide() end
   frame.summary:SetText(string.format("%d characters  |  %d / %d weeklies completed", count, total, count * #self.tasks))
-  local trackedMoney, knownCharacters, hasWarbandMoney, characterMoney, warbandMoney = self:GetTrackedMoney()
-  local remainingMoney = math.max(0, GOLD_GOAL - trackedMoney)
+  local trackedMoney, _, hasWarbandMoney, characterMoney, warbandMoney = self:GetTrackedMoney()
   local progress = math.min(100, trackedMoney / GOLD_GOAL * 100)
   frame.goldPanel.characters:SetText("Characters: " .. GetCoinTextureString(characterMoney))
   frame.goldPanel.warband:SetText(hasWarbandMoney
@@ -194,10 +211,21 @@ function addon:RefreshWindow()
   frame.goldPanel.total:SetText("Total: " .. GetCoinTextureString(trackedMoney))
   frame.goldBar:SetValue(math.min(trackedMoney, GOLD_GOAL))
   frame.goldBar:SetStatusBarColor(trackedMoney >= GOLD_GOAL and 0.2 or 0.95, trackedMoney >= GOLD_GOAL and 0.8 or 0.68, trackedMoney >= GOLD_GOAL and 0.25 or 0.05)
-  frame.goldBar.text:SetText(string.format(
-    "%.1f%%  •  %s gold remaining  •  %d/%d chars",
-    progress, BreakUpLargeNumbers(math.ceil(remainingMoney / 10000)), knownCharacters, count
-  ))
+  for _, milestone in ipairs(frame.goldMilestones) do
+    local reached = trackedMoney >= milestone.amount
+    milestone.marker:SetColorTexture(
+      reached and 0.2 or milestone.red,
+      reached and 1 or milestone.green,
+      reached and 0.2 or milestone.blue,
+      0.95
+    )
+    milestone.label:SetTextColor(
+      reached and 0.3 or milestone.red,
+      reached and 1 or milestone.green,
+      reached and 0.3 or milestone.blue
+    )
+  end
+  frame.goldBar.text:SetText(string.format("%.1f%%", progress))
   local remaining = self.db.nextReset and math.max(0, self.db.nextReset - GetServerTime())
   frame.resetLabel:SetText(remaining and ("Weekly reset in " .. SecondsToTime(remaining)) or "Waiting for the server's weekly reset time...")
 end

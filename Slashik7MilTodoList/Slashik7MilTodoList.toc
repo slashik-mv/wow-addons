@@ -2,7 +2,7 @@
 ## Title: Slashik7MilTodoList
 ## Notes: Account-wide manual weekly checklist for your level-80+ alt army.
 ## Author: Slashik
-## Version: 1.3
+## Version: 1.4
 ## IconTexture: Interface\AddOns\Slashik7MilTodoList\addonIcon
 ## SavedVariables: Slashik7MilTodoListDB
 
