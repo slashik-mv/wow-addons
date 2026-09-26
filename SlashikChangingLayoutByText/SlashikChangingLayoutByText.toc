@@ -1,10 +1,12 @@
 ## Interface: 120100
 ## Title: SlashikChangingLayoutByText
-## Notes: Switch Edit Mode layouts with /l <layout> or /layout <layout>. Use /l <seconds> (for example, /l 10) to say a random dungeon message and start a pull countdown. Use /l msg for a random dungeon message without a countdown. Type /l help to list available commands and layouts.
+## Notes: Switch Edit Mode layouts with /l <layout> or /layout <layout>. Use /l <seconds> (for example, /l 10) to say a random dungeon message and start a pull countdown. Use /l msg for a random dungeon message without a countdown. Use /l msg on or /l msg off to toggle automatic Mythic dungeon pull messages (off by default). Type /l help to list available commands and layouts.
 ## Author: Slashik
-## Version: 1.9
+## Version: 1.10
 ## IconTexture: Interface\AddOns\SlashikChangingLayoutByText\addonIcon
+## SavedVariables: SlashikChangingLayoutByTextDB
 
+Settings.lua
 PullMessages.lua
 PrintHelper.lua
 LayoutHelper.lua

@@ -14,6 +14,10 @@ SlashCmdList["MYLAYOUT"] = function(msg)
 
     if msg == "help" then
         PrintHelp()
+    elseif msg:match("^msg%s+on$") then
+        addon.SetAutoPullMessages(true)
+    elseif msg:match("^msg%s+off$") then
+        addon.SetAutoPullMessages(false)
     elseif msg == "msg" then
         SendRandomPullMessage()
     elseif msg:match("^%d+$") and tonumber(msg) > 0 then

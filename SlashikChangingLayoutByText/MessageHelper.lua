@@ -22,15 +22,15 @@ local function IsInMythicDungeonParty()
 end
 
 local function OnPlayerCountdownStarted()
-    if IsInMythicDungeonParty() then
+    if addon.GetSettings().autoPullMessages and IsInMythicDungeonParty() then
         SendRandomPullMessage()
     end
 end
 
 local function StartPullCountdown(seconds)
-    -- In Mythic dungeons the countdown event sends the message, including
-    -- countdowns started by other party members. Keep manual behavior elsewhere.
-    if not IsInMythicDungeonParty() then
+    -- Preserve the explicit /l countdown greeting when automatic messages are off.
+    -- Otherwise, let the Mythic dungeon event send it to avoid duplicates.
+    if not addon.GetSettings().autoPullMessages or not IsInMythicDungeonParty() then
         SendRandomPullMessage()
     end
     C_PartyInfo.DoCountdown(seconds)
