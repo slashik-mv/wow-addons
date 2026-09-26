@@ -27,3 +27,8 @@ end
 SlashCmdList["MYLAYOUTLONG"] = function(msg)
     ActivateLayoutByName(msg and msg:lower():trim() or "")
 end
+
+-- WoW broadcasts standard party countdowns even when others lack this addon.
+local frame = CreateFrame("Frame")
+frame:RegisterEvent("START_PLAYER_COUNTDOWN")
+frame:SetScript("OnEvent", addon.OnPlayerCountdownStarted)

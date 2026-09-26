@@ -10,10 +10,32 @@ local function SendRandomPullMessage()
     SendRandomMessage(addon.PullMessages)
 end
 
+local function IsInMythicDungeonParty()
+    if not IsInGroup() or IsInRaid() then
+        return false
+    end
+
+    local inInstance, instanceType = IsInInstance()
+    local _, _, difficultyID = GetInstanceInfo()
+    -- Before a key starts, the dungeon uses Mythic difficulty (23).
+    return inInstance and instanceType == "party" and difficultyID == 23
+end
+
+local function OnPlayerCountdownStarted()
+    if IsInMythicDungeonParty() then
+        SendRandomPullMessage()
+    end
+end
+
 local function StartPullCountdown(seconds)
-    SendRandomPullMessage()
+    -- In Mythic dungeons the countdown event sends the message, including
+    -- countdowns started by other party members. Keep manual behavior elsewhere.
+    if not IsInMythicDungeonParty() then
+        SendRandomPullMessage()
+    end
     C_PartyInfo.DoCountdown(seconds)
 end
 
 addon.SendRandomPullMessage = SendRandomPullMessage
 addon.StartPullCountdown = StartPullCountdown
+addon.OnPlayerCountdownStarted = OnPlayerCountdownStarted
