@@ -22,10 +22,23 @@ function createGuildKeystoneLayoutHelper(window)
         else window:SetPoint("CENTER") end
     end
 
-    function layout:apply(count)
+    function layout:apply(count, offlineRow)
         if InCombatLockdown() then return end
         local compact = window.compact
-        window:SetSize(compact and 340 or 850, compact and (94 + count * 22) or 390)
+        local dividerHeight = offlineRow and 24 or 0
+        window:SetSize(compact and 340 or 850, (compact and (94 + count * 22) or 390) + dividerHeight)
+        window.offlineDivider:SetShown(offlineRow ~= nil)
+        window.offlineDividerLine:SetShown(offlineRow ~= nil)
+        if offlineRow then
+            -- Repeat the heading on subsequent offline-only pages for context.
+            local y = compact and (-34 - (offlineRow - 1) * 22) or (-52 - (offlineRow - 1) * 28)
+            window.offlineDivider:ClearAllPoints()
+            window.offlineDivider:SetPoint("TOPLEFT", compact and 12 or 18, y - 4)
+            window.offlineDividerLine:ClearAllPoints()
+            window.offlineDividerLine:SetPoint("LEFT", window.offlineDivider, "RIGHT", 10, 0)
+            window.offlineDividerLine:SetPoint("RIGHT", window, "RIGHT", compact and -12 or -18, 0)
+            window.offlineDividerLine:SetHeight(1)
+        end
         window.title:SetFontObject(compact and GameFontNormalSmall or GameFontNormalLarge)
         window.title:ClearAllPoints()
         window.title:SetPoint("TOPLEFT", compact and 12 or 18, compact and -12 or -18)
@@ -46,6 +59,7 @@ function createGuildKeystoneLayoutHelper(window)
         window.status:SetPoint("BOTTOMLEFT", compact and 12 or 18, compact and 38 or 50)
         for i, row in ipairs(window.rows) do
             local y = compact and (-34 - (i - 1) * 22) or (-52 - (i - 1) * 28)
+            if offlineRow and i >= offlineRow then y = y - dividerHeight end
             row.name:ClearAllPoints()
             row.name:SetPoint("TOPLEFT", compact and 12 or 18, y)
             row.name:SetSize(compact and 110 or 250, compact and 22 or 24)
@@ -54,6 +68,11 @@ function createGuildKeystoneLayoutHelper(window)
             row.key:SetSize(compact and 198 or 360, compact and 22 or 24)
             row.name:SetWordWrap(false)
             row.key:SetWordWrap(false)
+            -- Secure teleport buttons must stay anchored directly to the window.
+            row.whisper:ClearAllPoints()
+            row.whisper:SetPoint("TOPLEFT", window, "TOPLEFT", 654, y - 1)
+            row.teleport:ClearAllPoints()
+            row.teleport:SetPoint("TOPLEFT", window, "TOPLEFT", 744, y - 1)
         end
     end
     return layout
