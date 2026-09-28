@@ -8,6 +8,9 @@ local function initializeDefaultSettings(settings)
     if settings.audioEnabled == nil then
         settings.audioEnabled = false
     end
+    if settings.soulstoneEnabled == nil then
+        settings.soulstoneEnabled = false
+    end
 end
 
 function getSettings()
@@ -24,5 +27,6 @@ function resetSettingsToDefault()
     settings.randomImages = true
     settings.randomTimerMinutes = 1
     settings.audioEnabled = false
+    settings.soulstoneEnabled = false
     return settings
 end
