@@ -8,11 +8,10 @@ local warning
 local readyCheckActive = false
 local readyCheckInitiator
 local readyWarningSent = false
+local readyWhispersSent = false
 local READY_WARNING = "USE SOULSTONE ON A HEALER!"
 
 local function announceReadyWarning()
-    if not getSettings().soulstoneEnabled then return end
-    if readyWarningSent then return end
     local player, realm = UnitFullName("player")
     realm = realm and realm ~= "" and realm or GetNormalizedRealmName()
     if not player or not realm or not readyCheckInitiator then return end
@@ -20,12 +19,31 @@ local function announceReadyWarning()
     local isInitiator = readyCheckInitiator == playerName
         or readyCheckInitiator == Ambiguate(playerName, "none")
     -- The initiator uses raid warning; other opted-in players use ordinary raid chat.
-    readyWarningSent = true
-    if isInitiator and (UnitIsGroupLeader("player") or UnitIsGroupAssistant("player")) then
-        C_ChatInfo.SendChatMessage(READY_WARNING, "RAID_WARNING")
-    else
-        -- Fall back to chat if the initiator lost raid-warning permissions.
-        C_ChatInfo.SendChatMessage("No Soulstone in the raid!", "RAID")
+    if getSettings().soulstoneEnabled and not readyWarningSent then
+        readyWarningSent = true
+        if isInitiator and (UnitIsGroupLeader("player") or UnitIsGroupAssistant("player")) then
+            C_ChatInfo.SendChatMessage(READY_WARNING, "RAID_WARNING")
+        else
+            -- Fall back to chat if the initiator lost raid-warning permissions.
+            C_ChatInfo.SendChatMessage("No Soulstone in the raid!", "RAID")
+        end
+    end
+    if isInitiator and not readyWhispersSent then
+        readyWhispersSent = true
+        -- Only the initiator whispers, once per ready check, to every online warlock.
+        for i = 1, GetNumGroupMembers() do
+            local unit = "raid" .. i
+            local _, class = UnitClass(unit)
+            if class == "WARLOCK" and UnitIsConnected(unit) then
+                local name, targetRealm = UnitFullName(unit)
+                targetRealm = targetRealm and targetRealm ~= "" and targetRealm or GetNormalizedRealmName()
+                if name and targetRealm then
+                    C_ChatInfo.SendChatMessage(
+                        "Hi! Nobody in the raid has Soulstone. Please use it on a healer before we pull :)",
+                        "WHISPER", nil, name .. "-" .. targetRealm)
+                end
+            end
+        end
     end
 end
 
@@ -85,7 +103,6 @@ local function render()
 end
 
 local function checkReadySoulstone()
-    if not getSettings().soulstoneEnabled then return end
     if not readyCheckActive then return end
     if warning then warning:Hide() end
     if not channel() or InCombatLockdown() then return end
@@ -112,7 +129,9 @@ local function checkReadySoulstone()
         end
     end
     if warlock and not unknown then
-        showWarning("USE SOULSTONE\nON A HEALER!", "No Soulstone detected in the raid.")
+        if getSettings().soulstoneEnabled then
+            showWarning("USE SOULSTONE\nON A HEALER!", "No Soulstone detected in the raid.")
+        end
         announceReadyWarning()
     end
 end
@@ -123,14 +142,15 @@ local function reset()
     encounter, deadline, reported = nil, 0, false
     readyCheckActive = false
     readyWarningSent = false
+    readyWhispersSent = false
     readyCheckInitiator = nil
     if warning then warning:Hide() end
 end
 
--- The setting controls ready checks only; wipe recovery is always enabled.
+-- Only ready-check screen/raid messages are optional; whispers and wipe recovery stay enabled.
 function setRaidSoulstoneEnabled(enabled)
     getSettings().soulstoneEnabled = enabled == true
-    if not enabled and readyCheckActive then reset() end
+    if not enabled and readyCheckActive and warning then warning:Hide() end
 end
 
 local function checkOwnSoulstone()
@@ -160,7 +180,6 @@ events:SetScript("OnEvent", function(_, event, ...)
     if event == "PLAYER_LOGIN" then
         C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
     elseif event == "READY_CHECK" then
-        if not getSettings().soulstoneEnabled then return end
         reset()
         if not channel() or InCombatLockdown() then return end
         readyCheckActive = true
