@@ -13,6 +13,47 @@ local READY_WARNING = "USE SOULSTONE ON A HEALER!"
 local visibleSoulstones, pullSoulstones, fallbackSoulstones = {}, {}, {}
 local pullEncounter
 local fallbackReady = false
+local debugEnabled, debugHistory = false, {}
+
+local function debugValue(value)
+    if issecretvalue and issecretvalue(value) then return "<restricted>" end
+    return tostring(value)
+end
+
+local function debugLog(message)
+    if not debugEnabled then return end
+    local line = string.format("[%.1f] %s", GetTime(), message)
+    debugHistory[#debugHistory + 1] = line
+    if #debugHistory > 30 then table.remove(debugHistory, 1) end
+    print("|cff55ddffSRBT Soulstone debug:|r " .. line)
+end
+
+function raidSoulstoneDebug(command)
+    if command == "on" then
+        debugEnabled = true
+        debugLog("Enabled for this session. Enable on the Soulstone holder too for resurrection diagnostics.")
+    elseif command == "off" then
+        debugEnabled = false
+        print("SRBT Soulstone debug: off.")
+    elseif command == "" or command == "status" then
+        print("SRBT Soulstone debug: " .. (debugEnabled and "on" or "off")
+            .. "; encounter=" .. debugValue(encounter) .. "; pull=" .. debugValue(pullEncounter)
+            .. "; deadline=" .. debugValue(deadline) .. "; fallbackReady=" .. debugValue(fallbackReady))
+        for label, entries in pairs({ visible = visibleSoulstones, pull = pullSoulstones,
+            fallback = fallbackSoulstones, confirmed = holders }) do
+            local count = 0
+            for name, info in pairs(entries) do
+                count = count + 1
+                print("SRBT " .. label .. ": " .. debugValue(name) .. " = "
+                    .. debugValue(type(info) == "table" and info.expiresAt or info))
+            end
+            print("SRBT " .. label .. " count: " .. count)
+        end
+        for _, line in ipairs(debugHistory) do print("SRBT history: " .. line) end
+    else
+        print("Usage: /srbt soulstone debug <on|off|status>")
+    end
+end
 
 local function isSecret(value)
     return issecretvalue and issecretvalue(value)
@@ -88,6 +129,7 @@ local function rememberSoulstone(unit)
             local expiry = aura.expirationTime
             if isSecret(expiry) or type(expiry) ~= "number" or expiry <= 0 then expiry = nil end
             visibleSoulstones[name] = { expiresAt = expiry }
+            debugLog("Recorded pre-pull Soulstone: " .. debugValue(name) .. "; expires=" .. debugValue(expiry))
             return
         end
     end
@@ -101,6 +143,7 @@ local function rememberRaidSoulstones()
 end
 
 local function showWarning(titleText, subtitleText)
+    debugLog("SHOW: " .. titleText .. " / " .. subtitleText)
     if not warning then
         warning = CreateFrame("Frame", nil, UIParent)
         warning:SetSize(800, 240)
@@ -132,6 +175,7 @@ local function render()
     end
     table.sort(names)
     if not channel() or GetTime() >= deadline then
+        debugLog("Render skipped: outside raid instance/group or warning expired.")
         if warning then warning:Hide() end
         return
     end
@@ -151,7 +195,10 @@ local function render()
     table.sort(names)
     if #names > 0 then
         showWarning("DON'T RELEASE YET!", table.concat(names, ", ") .. " had Soulstone before the pull.\nCheck if they can resurrect — not confirmed.")
-    elseif warning then warning:Hide() end
+    else
+        debugLog("No eligible confirmed or fallback holders to display.")
+        if warning then warning:Hide() end
+    end
 end
 
 local function checkReadySoulstone()
@@ -208,9 +255,12 @@ end
 
 local function checkOwnSoulstone()
     if not encounter or GetTime() >= deadline or not channel() then return end
+    debugLog("Own check: dead=" .. debugValue(UnitIsDead("player")) .. "; ghost=" .. debugValue(UnitIsGhost("player")))
     local usable = false
     if UnitIsDead("player") and not UnitIsGhost("player") then
         for _, option in ipairs(C_DeathInfo.GetSelfResurrectOptions() or {}) do
+            debugLog("Resurrection option: id=" .. debugValue(option.id) .. "; type=" .. debugValue(option.optionType)
+                .. "; usable=" .. debugValue(option.canUse) .. "; name=" .. debugValue(option.name))
             -- Match the resurrection spell, not the warlock's Soulstone cast/aura.
             if option.optionType == Enum.SelfResurrectOptionType.Spell
                 and option.id == SOULSTONE_RESURRECTION and option.canUse then usable = true; break end
@@ -219,6 +269,7 @@ local function checkOwnSoulstone()
     local name = fullName("player")
     if not name or usable == reported then return end
     reported = usable
+    debugLog("Sending own Soulstone state: " .. debugValue(usable))
     holders[name] = usable -- Preserve explicit withdrawals so the fallback cannot revive them.
     C_ChatInfo.SendAddonMessage(PREFIX, encounter .. ":" .. (usable and "1" or "0"), channel())
     render()
@@ -249,6 +300,7 @@ events:SetScript("OnEvent", function(_, event, ...)
             checkReadySoulstone()
         end
     elseif event == "ENCOUNTER_START" then
+        debugLog("ENCOUNTER_START id=" .. debugValue((...)) .. "; combat=" .. debugValue(InCombatLockdown()))
         rememberRaidSoulstones()
         pullSoulstones, visibleSoulstones = visibleSoulstones, {}
         pullEncounter = ...
@@ -265,19 +317,26 @@ events:SetScript("OnEvent", function(_, event, ...)
         if encounter then render() end
     elseif event == "ENCOUNTER_END" then
         local id, _, _, _, success = ...
+        debugLog("ENCOUNTER_END id=" .. debugValue(id) .. "; success=" .. debugValue(success)
+            .. "; matching pull=" .. debugValue(pullEncounter == id) .. "; channel=" .. debugValue(channel()))
         local snapshot = pullEncounter == id and pullSoulstones or {}
         pullEncounter, pullSoulstones, visibleSoulstones = nil, {}, {}
         reset()
         if success ~= 0 or not channel() then return end
         encounter, deadline = id, GetTime() + 15
         fallbackSoulstones = snapshot
+        -- Warn before players release; confirmed reports replace this immediately when received.
+        fallbackReady = true
+        render()
         -- Briefly defer so every client can process ENCOUNTER_END before reports arrive.
         timers[#timers + 1] = C_Timer.NewTimer(0.5, checkOwnSoulstone)
         timers[#timers + 1] = C_Timer.NewTimer(2, checkOwnSoulstone)
-        timers[#timers + 1] = C_Timer.NewTimer(2.5, function() fallbackReady = true; render() end)
         timers[#timers + 1] = C_Timer.NewTimer(15, reset)
     elseif event == "CHAT_MSG_ADDON" then
         local prefix, message, distribution, sender = ...
+        if prefix == PREFIX then
+            debugLog("Received: " .. debugValue(sender) .. " / " .. debugValue(distribution) .. " / " .. debugValue(message))
+        end
         if prefix ~= PREFIX or not encounter or GetTime() >= deadline
             or not channel() or distribution ~= channel() or type(message) ~= "string" or #message > 32 then return end
         local id, state = message:match("^(%d+):([01])$")

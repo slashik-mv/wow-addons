@@ -84,6 +84,7 @@ local function printSettingsHelp()
     print("|cffffcc00/srbt audio <on|off>|r - Turn break-warning sounds on or off.")
     print("|cffffcc00/srbt soulstone <on|off>|r - Turn ready-check screen reminders and raid announcements on or off (default: off). Initiator whispers and wipe warnings are always on.")
     print("|cffffcc00/srbt settings|r - Show the current addon settings.")
+    print("|cffffcc00/srbt soulstone debug <on|off|status>|r - Diagnose Soulstone warnings (session only).")
     print("|cffffcc00/srbt settings default|r - Reset rotation to on, timer to 1 minute, audio and ready-check Soulstone reminders to off.")
     print("|cffffcc00/srbt help|r - Show this command list.")
 end
@@ -132,6 +133,11 @@ SlashCmdList.SLASHIKRAIDBREAKSETTINGS = function(input)
         end
     elseif command == "soulstone" then
         value = value:lower()
+        local debugCommand = value:match("^debug%s*(.*)$")
+        if debugCommand ~= nil then
+            raidSoulstoneDebug(debugCommand)
+            return
+        end
         if value == "on" or value == "off" then
             setRaidSoulstoneEnabled(value == "on")
             print("|cff55ddffSlashik Raid Break Time: ready-check screen/raid reminders are " .. value .. ". Initiator whispers and wipe warnings are always on.|r")
