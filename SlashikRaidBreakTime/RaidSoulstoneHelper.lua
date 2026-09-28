@@ -10,6 +10,13 @@ local readyCheckInitiator
 local readyWarningSent = false
 local readyWhispersSent = false
 local READY_WARNING = "USE SOULSTONE ON A HEALER!"
+local visibleSoulstones, pullSoulstones, fallbackSoulstones = {}, {}, {}
+local pullEncounter
+local fallbackReady = false
+
+local function isSecret(value)
+    return issecretvalue and issecretvalue(value)
+end
 
 local function announceReadyWarning()
     local player, realm = UnitFullName("player")
@@ -67,6 +74,32 @@ local function raidUnit(sender)
     end
 end
 
+-- Observe only readable, out-of-combat buffs. Never infer absence from restricted data.
+local function rememberSoulstone(unit)
+    if pullEncounter or InCombatLockdown() or not channel() then return end
+    local name = fullName(unit)
+    if not name then return end
+    visibleSoulstones[name] = nil
+    if not UnitIsConnected(unit) or not UnitIsVisible(unit) then return end
+    for index = 1, 255 do
+        local aura = C_UnitAuras.GetAuraDataByIndex(unit, index, "HELPFUL")
+        if isSecret(aura) or not aura then return end
+        if not isSecret(aura.spellId) and aura.spellId == 20707 then
+            local expiry = aura.expirationTime
+            if isSecret(expiry) or type(expiry) ~= "number" or expiry <= 0 then expiry = nil end
+            visibleSoulstones[name] = { expiresAt = expiry }
+            return
+        end
+    end
+end
+
+local function rememberRaidSoulstones()
+    if pullEncounter or InCombatLockdown() then return end
+    visibleSoulstones = {}
+    if not channel() then return end
+    for i = 1, GetNumGroupMembers() do rememberSoulstone("raid" .. i) end
+end
+
 local function showWarning(titleText, subtitleText)
     if not warning then
         warning = CreateFrame("Frame", nil, UIParent)
@@ -91,15 +124,34 @@ end
 
 local function render()
     local names = {}
-    for name in pairs(holders) do
-        if raidUnit(name) then names[#names + 1] = Ambiguate(name, "none") end
+    for name, available in pairs(holders) do
+        local unit = raidUnit(name)
+        if available and unit and UnitIsConnected(unit) and UnitIsDead(unit) and not UnitIsGhost(unit) then
+            names[#names + 1] = Ambiguate(name, "none")
+        end
     end
     table.sort(names)
-    if #names == 0 or not channel() or GetTime() >= deadline then
+    if not channel() or GetTime() >= deadline then
         if warning then warning:Hide() end
         return
     end
-    showWarning("DON'T RELEASE!", table.concat(names, ", ") .. (#names == 1 and " has a Soulstone." or " have Soulstones."))
+    if #names > 0 then
+        showWarning("DON'T RELEASE!", table.concat(names, ", ") .. (#names == 1 and " has a Soulstone." or " have Soulstones."))
+        return -- Confirmed reports always take priority over remembered buffs.
+    end
+    if fallbackReady then
+        for name, info in pairs(fallbackSoulstones) do
+            local unit = raidUnit(name)
+            if not unit or not UnitIsConnected(unit) or not UnitIsDead(unit) or UnitIsGhost(unit)
+                or (info.expiresAt and info.expiresAt <= GetTime()) or holders[name] ~= nil then
+                fallbackSoulstones[name] = nil
+            else names[#names + 1] = Ambiguate(name, "none") end
+        end
+    end
+    table.sort(names)
+    if #names > 0 then
+        showWarning("DON'T RELEASE YET!", table.concat(names, ", ") .. " had Soulstone before the pull.\nCheck if they can resurrect — not confirmed.")
+    elseif warning then warning:Hide() end
 end
 
 local function checkReadySoulstone()
@@ -144,6 +196,7 @@ local function reset()
     readyWarningSent = false
     readyWhispersSent = false
     readyCheckInitiator = nil
+    fallbackSoulstones, fallbackReady = {}, false
     if warning then warning:Hide() end
 end
 
@@ -166,7 +219,7 @@ local function checkOwnSoulstone()
     local name = fullName("player")
     if not name or usable == reported then return end
     reported = usable
-    holders[name] = usable or nil
+    holders[name] = usable -- Preserve explicit withdrawals so the fallback cannot revive them.
     C_ChatInfo.SendAddonMessage(PREFIX, encounter .. ":" .. (usable and "1" or "0"), channel())
     render()
 end
@@ -175,33 +228,53 @@ local events = CreateFrame("Frame")
 for _, event in ipairs({ "PLAYER_LOGIN", "ENCOUNTER_START", "ENCOUNTER_END", "CHAT_MSG_ADDON",
     "SELF_RES_SPELL_CHANGED", "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST",
     "PLAYER_ENTERING_WORLD", "GROUP_ROSTER_UPDATE", "READY_CHECK", "READY_CHECK_FINISHED",
-    "UNIT_AURA", "PLAYER_REGEN_DISABLED" }) do events:RegisterEvent(event) end
+    "UNIT_AURA", "UNIT_FLAGS", "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED" }) do events:RegisterEvent(event) end
 events:SetScript("OnEvent", function(_, event, ...)
     if event == "PLAYER_LOGIN" then
         C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
+        rememberRaidSoulstones()
     elseif event == "READY_CHECK" then
         reset()
         if not channel() or InCombatLockdown() then return end
         readyCheckActive = true
         readyCheckInitiator = ...
+        rememberRaidSoulstones()
         checkReadySoulstone()
     elseif event == "READY_CHECK_FINISHED" then
         if readyCheckActive then reset() end
     elseif event == "UNIT_AURA" then
         local unit = ...
+        if unit == "player" or (type(unit) == "string" and unit:match("^raid%d+$")) then rememberSoulstone(unit) end
         if readyCheckActive and (unit == "player" or (type(unit) == "string" and unit:match("^raid%d+$"))) then
             checkReadySoulstone()
         end
-    elseif event == "ENCOUNTER_START" or event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_REGEN_DISABLED" then
+    elseif event == "ENCOUNTER_START" then
+        rememberRaidSoulstones()
+        pullSoulstones, visibleSoulstones = visibleSoulstones, {}
+        pullEncounter = ...
         reset()
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        reset()
+        pullEncounter, pullSoulstones, visibleSoulstones = nil, {}, {}
+        rememberRaidSoulstones()
+    elseif event == "PLAYER_REGEN_DISABLED" then
+        if readyCheckActive then reset() end
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        rememberRaidSoulstones()
+    elseif event == "UNIT_FLAGS" then
+        if encounter then render() end
     elseif event == "ENCOUNTER_END" then
         local id, _, _, _, success = ...
+        local snapshot = pullEncounter == id and pullSoulstones or {}
+        pullEncounter, pullSoulstones, visibleSoulstones = nil, {}, {}
         reset()
         if success ~= 0 or not channel() then return end
         encounter, deadline = id, GetTime() + 15
+        fallbackSoulstones = snapshot
         -- Briefly defer so every client can process ENCOUNTER_END before reports arrive.
         timers[#timers + 1] = C_Timer.NewTimer(0.5, checkOwnSoulstone)
         timers[#timers + 1] = C_Timer.NewTimer(2, checkOwnSoulstone)
+        timers[#timers + 1] = C_Timer.NewTimer(2.5, function() fallbackReady = true; render() end)
         timers[#timers + 1] = C_Timer.NewTimer(15, reset)
     elseif event == "CHAT_MSG_ADDON" then
         local prefix, message, distribution, sender = ...
@@ -213,10 +286,11 @@ events:SetScript("OnEvent", function(_, event, ...)
         if not unit or name == fullName("player") then return end
         local available = state == "1"
         if available and (not UnitIsDead(unit) or UnitIsGhost(unit)) then return end
-        if (holders[name] == true) == available then return end
-        holders[name] = available or nil
+        if holders[name] == available then return end
+        holders[name] = available
         render()
     elseif event == "GROUP_ROSTER_UPDATE" then
+        rememberRaidSoulstones()
         if readyCheckActive then checkReadySoulstone()
         elseif not channel() then reset() else render() end
     else
