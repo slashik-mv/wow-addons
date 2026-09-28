@@ -12,17 +12,21 @@ local READY_WARNING = "USE SOULSTONE ON A HEALER!"
 
 local function announceReadyWarning()
     if not getSettings().soulstoneEnabled then return end
-    if readyWarningSent or not readyCheckInitiator then return end
-    -- Only the ready-check initiator posts: every other client keeps its local reminder.
+    if readyWarningSent then return end
     local player, realm = UnitFullName("player")
     realm = realm and realm ~= "" and realm or GetNormalizedRealmName()
-    if not player or not realm then return end
+    if not player or not realm or not readyCheckInitiator then return end
     local playerName = player .. "-" .. realm
-    if readyCheckInitiator ~= playerName and readyCheckInitiator ~= Ambiguate(playerName, "none") then return end
-    if not UnitIsGroupLeader("player") and not UnitIsGroupAssistant("player") then return end
+    local isInitiator = readyCheckInitiator == playerName
+        or readyCheckInitiator == Ambiguate(playerName, "none")
+    -- The initiator uses raid warning; other opted-in players use ordinary raid chat.
     readyWarningSent = true
-    C_ChatInfo.SendChatMessage("No Soulstone in the raid!", "RAID")
-    C_ChatInfo.SendChatMessage(READY_WARNING, "RAID_WARNING")
+    if isInitiator and (UnitIsGroupLeader("player") or UnitIsGroupAssistant("player")) then
+        C_ChatInfo.SendChatMessage(READY_WARNING, "RAID_WARNING")
+    else
+        -- Fall back to chat if the initiator lost raid-warning permissions.
+        C_ChatInfo.SendChatMessage("No Soulstone in the raid!", "RAID")
+    end
 end
 
 local function channel()
@@ -118,18 +122,18 @@ local function reset()
     timers, holders = {}, {}
     encounter, deadline, reported = nil, 0, false
     readyCheckActive = false
-    readyCheckInitiator, readyWarningSent = nil, false
+    readyWarningSent = false
+    readyCheckInitiator = nil
     if warning then warning:Hide() end
 end
 
--- Disable immediately, including active warnings and delayed wipe checks.
+-- The setting controls ready checks only; wipe recovery is always enabled.
 function setRaidSoulstoneEnabled(enabled)
     getSettings().soulstoneEnabled = enabled == true
-    if not enabled then reset() end
+    if not enabled and readyCheckActive then reset() end
 end
 
 local function checkOwnSoulstone()
-    if not getSettings().soulstoneEnabled then return end
     if not encounter or GetTime() >= deadline or not channel() then return end
     local usable = false
     if UnitIsDead("player") and not UnitIsGhost("player") then
@@ -155,9 +159,8 @@ for _, event in ipairs({ "PLAYER_LOGIN", "ENCOUNTER_START", "ENCOUNTER_END", "CH
 events:SetScript("OnEvent", function(_, event, ...)
     if event == "PLAYER_LOGIN" then
         C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
-    elseif not getSettings().soulstoneEnabled then
-        reset()
     elseif event == "READY_CHECK" then
+        if not getSettings().soulstoneEnabled then return end
         reset()
         if not channel() or InCombatLockdown() then return end
         readyCheckActive = true

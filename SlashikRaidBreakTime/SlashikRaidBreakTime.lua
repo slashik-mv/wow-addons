@@ -82,9 +82,9 @@ local function printSettingsHelp()
     print("|cffffcc00/srbt random <on|off>|r - Turn automatic image rotation on or off.")
     print("|cffffcc00/srbt timer <1-120>|r - Set how often images change, in minutes.")
     print("|cffffcc00/srbt audio <on|off>|r - Turn break-warning sounds on or off.")
-    print("|cffffcc00/srbt soulstone <on|off>|r - Turn raid Soulstone reminders and announcements on or off (default: off).")
+    print("|cffffcc00/srbt soulstone <on|off>|r - Turn ready-check Soulstone reminders and chat announcements on or off (default: off). Wipe warnings are always on.")
     print("|cffffcc00/srbt settings|r - Show the current addon settings.")
-    print("|cffffcc00/srbt settings default|r - Reset rotation to on, timer to 1 minute, audio and Soulstone reminders to off.")
+    print("|cffffcc00/srbt settings default|r - Reset rotation to on, timer to 1 minute, audio and ready-check Soulstone reminders to off.")
     print("|cffffcc00/srbt help|r - Show this command list.")
 end
 
@@ -104,14 +104,14 @@ SlashCmdList.SLASHIKRAIDBREAKSETTINGS = function(input)
         if value:lower() == "default" then
             frame:resetSettings()
             setRaidSoulstoneEnabled(false)
-            print("|cff55ddffSlashik Raid Break Time: settings reset to rotation on, a 1-minute timer, audio and Soulstone reminders off.|r")
+            print("|cff55ddffSlashik Raid Break Time: settings reset to rotation on, a 1-minute timer, audio and ready-check Soulstone reminders off.|r")
         else
             local rotationStatus = frame:isRandomImagesEnabled() and "on" or "off"
             local audioStatus = frame:isAudioEnabled() and "on" or "off"
             print(string.format("|cff55ddffSlashik Raid Break Time: random image rotation is %s.|r", rotationStatus))
             print(string.format("|cff55ddffRandom image timer: every %d minute(s).|r", frame:getRandomTimerMinutes()))
             print(string.format("|cff55ddffBreak-warning audio is %s.|r", audioStatus))
-            print(string.format("|cff55ddffRaid Soulstone reminders are %s.|r", getSettings().soulstoneEnabled and "on" or "off"))
+            print(string.format("|cff55ddffReady-check Soulstone reminders are %s. Wipe warnings are always on.|r", getSettings().soulstoneEnabled and "on" or "off"))
         end
     elseif command == "random" then
         value = value:lower()
@@ -134,7 +134,7 @@ SlashCmdList.SLASHIKRAIDBREAKSETTINGS = function(input)
         value = value:lower()
         if value == "on" or value == "off" then
             setRaidSoulstoneEnabled(value == "on")
-            print("|cff55ddffSlashik Raid Break Time: raid Soulstone reminders are " .. value .. ".|r")
+            print("|cff55ddffSlashik Raid Break Time: ready-check Soulstone reminders are " .. value .. ". Wipe warnings are always on.|r")
         else
             print("|cffffcc00Usage: /srbt soulstone <on|off>|r")
         end
