@@ -12,7 +12,10 @@ end
 
 local function SetAutoPullMessages(enabled)
     GetSettings().autoPullMessages = enabled
-    print("Automatic pull messages: " .. (enabled and "ON" or "OFF"))
+    if not enabled and addon.ResetDungeonFinderGreeting then
+        addon.ResetDungeonFinderGreeting()
+    end
+    print("Automatic dungeon messages: " .. (enabled and "ON" or "OFF"))
 end
 
 addon.GetSettings = GetSettings

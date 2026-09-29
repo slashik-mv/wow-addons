@@ -30,9 +30,9 @@ local function PrintHelp()
     end
     print("/l <seconds> - say a random message and start a pull countdown")
     print("/l msg       - say a random message without starting a pull countdown")
-    print("/l msg on    - enable automatic Mythic dungeon pull messages")
-    print("/l msg off   - disable automatic pull messages (default)")
-    print("Automatic pull messages: " .. (addon.GetSettings().autoPullMessages and "ON" or "OFF"))
+    print("/l msg on    - enable Mythic pull and Dungeon Finder arrival messages")
+    print("/l msg off   - disable automatic dungeon messages (default)")
+    print("Automatic dungeon messages: " .. (addon.GetSettings().autoPullMessages and "ON" or "OFF"))
 end
 
 addon.ActivateLayoutByName = ActivateLayoutByName

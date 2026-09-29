@@ -35,4 +35,24 @@ end
 -- WoW broadcasts standard party countdowns even when others lack this addon.
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("START_PLAYER_COUNTDOWN")
-frame:SetScript("OnEvent", addon.OnPlayerCountdownStarted)
+frame:RegisterEvent("LFG_PROPOSAL_SUCCEEDED")
+frame:RegisterEvent("LFG_PROPOSAL_FAILED")
+frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+frame:RegisterEvent("GROUP_LEFT")
+frame:RegisterEvent("GROUP_ROSTER_UPDATE")
+frame:RegisterEvent("LFG_UPDATE")
+frame:SetScript("OnEvent", function(_, event, ...)
+    if event == "START_PLAYER_COUNTDOWN" then
+        addon.OnPlayerCountdownStarted()
+    elseif event == "LFG_PROPOSAL_SUCCEEDED" then
+        addon.OnDungeonFinderProposalSucceeded()
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        addon.OnDungeonFinderEnteringWorld(...)
+    elseif event == "GROUP_ROSTER_UPDATE" or event == "LFG_UPDATE" then
+        addon.OnDungeonFinderGroupUpdated()
+    elseif event == "GROUP_LEFT" then
+        addon.OnDungeonFinderGroupLeft()
+    elseif event == "LFG_PROPOSAL_FAILED" then
+        addon.ResetDungeonFinderGreeting()
+    end
+end)
