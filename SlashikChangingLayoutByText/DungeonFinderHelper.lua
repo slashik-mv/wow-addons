@@ -44,7 +44,7 @@ local function TryGreeting()
     if greetedDungeon == key then return end
     greetedDungeon = key
     if not suppressArrival and addon.GetSettings().autoPullMessages then
-        addon.SendRandomPullMessage()
+        addon.SendRandomPullMessage("INSTANCE_CHAT")
     end
 end
 

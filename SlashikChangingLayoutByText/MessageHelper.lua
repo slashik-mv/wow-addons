@@ -1,13 +1,20 @@
 local _, addon = ...
 
-local function SendRandomMessage(messages)
+local function GetGroupMessageChannel()
+    if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
+        return "INSTANCE_CHAT"
+    end
+    return "PARTY"
+end
+
+local function SendRandomMessage(messages, channel)
     if messages and #messages > 0 then
-        SendChatMessage(messages[math.random(#messages)], "SAY")
+        SendChatMessage(messages[math.random(#messages)], channel or GetGroupMessageChannel())
     end
 end
 
-local function SendRandomPullMessage()
-    SendRandomMessage(addon.PullMessages)
+local function SendRandomPullMessage(channel)
+    SendRandomMessage(addon.PullMessages, channel)
 end
 
 local function IsInMythicDungeonParty()

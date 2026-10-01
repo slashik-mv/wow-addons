@@ -115,6 +115,9 @@ local function raidUnit(sender)
     end
 end
 
+local restitution = createRaidRestitutionHelper(fullName, raidUnit, channel, debugLog)
+local soulstoneDeadline = 0
+
 -- Observe only readable, out-of-combat buffs. Never infer absence from restricted data.
 local function rememberSoulstone(unit)
     if pullEncounter or InCombatLockdown() or not channel() then return end
@@ -169,7 +172,7 @@ local function render()
     local names = {}
     for name, available in pairs(holders) do
         local unit = raidUnit(name)
-        if available and unit and UnitIsConnected(unit) and UnitIsDead(unit) and not UnitIsGhost(unit) then
+        if GetTime() < soulstoneDeadline and available and unit and UnitIsConnected(unit) and UnitIsDead(unit) and not UnitIsGhost(unit) then
             names[#names + 1] = Ambiguate(name, "none")
         end
     end
@@ -183,7 +186,12 @@ local function render()
         showWarning("DON'T RELEASE!", table.concat(names, ", ") .. (#names == 1 and " has a Soulstone." or " have Soulstones."))
         return -- Confirmed reports always take priority over remembered buffs.
     end
-    if fallbackReady then
+    local restitutionWarning = restitution:warning()
+    if restitutionWarning then
+        showWarning("DON'T RELEASE!", restitutionWarning)
+        return
+    end
+    if fallbackReady and GetTime() < soulstoneDeadline then
         for name, info in pairs(fallbackSoulstones) do
             local unit = raidUnit(name)
             if not unit or not UnitIsConnected(unit) or not UnitIsDead(unit) or UnitIsGhost(unit)
@@ -235,7 +243,7 @@ local function checkReadySoulstone()
     end
 end
 
-local function reset()
+local function reset(preserveRestitution)
     for _, timer in ipairs(timers) do timer:Cancel() end
     timers, holders = {}, {}
     encounter, deadline, reported = nil, 0, false
@@ -244,6 +252,8 @@ local function reset()
     readyWhispersSent = false
     readyCheckInitiator = nil
     fallbackSoulstones, fallbackReady = {}, false
+    soulstoneDeadline = 0
+    if not preserveRestitution then restitution:reset() end
     if warning then warning:Hide() end
 end
 
@@ -283,6 +293,7 @@ for _, event in ipairs({ "PLAYER_LOGIN", "ENCOUNTER_START", "ENCOUNTER_END", "CH
 events:SetScript("OnEvent", function(_, event, ...)
     if event == "PLAYER_LOGIN" then
         C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
+        C_ChatInfo.RegisterAddonMessagePrefix("SRBT_RESTITUTION")
         rememberRaidSoulstones()
     elseif event == "READY_CHECK" then
         reset()
@@ -295,6 +306,10 @@ events:SetScript("OnEvent", function(_, event, ...)
         if readyCheckActive then reset() end
     elseif event == "UNIT_AURA" then
         local unit = ...
+        if unit == "player" and (pullEncounter or encounter) then
+            restitution:check(encounter)
+            if encounter then render() end
+        end
         if unit == "player" or (type(unit) == "string" and unit:match("^raid%d+$")) then rememberSoulstone(unit) end
         if readyCheckActive and (unit == "player" or (type(unit) == "string" and unit:match("^raid%d+$"))) then
             checkReadySoulstone()
@@ -319,11 +334,14 @@ events:SetScript("OnEvent", function(_, event, ...)
         local id, _, _, _, success = ...
         debugLog("ENCOUNTER_END id=" .. debugValue(id) .. "; success=" .. debugValue(success)
             .. "; matching pull=" .. debugValue(pullEncounter == id) .. "; channel=" .. debugValue(channel()))
-        local snapshot = pullEncounter == id and pullSoulstones or {}
+        local matchingPull = pullEncounter == id
+        local snapshot = matchingPull and pullSoulstones or {}
         pullEncounter, pullSoulstones, visibleSoulstones = nil, {}, {}
-        reset()
+        -- Keep the priest's witnessed angel state through this matching wipe only.
+        reset(matchingPull and success == 0 and channel() ~= nil)
         if success ~= 0 or not channel() then return end
-        encounter, deadline = id, GetTime() + 15
+        encounter, deadline = id, GetTime() + 30
+        soulstoneDeadline = GetTime() + 15
         fallbackSoulstones = snapshot
         -- Warn before players release; confirmed reports replace this immediately when received.
         fallbackReady = true
@@ -331,9 +349,21 @@ events:SetScript("OnEvent", function(_, event, ...)
         -- Briefly defer so every client can process ENCOUNTER_END before reports arrive.
         timers[#timers + 1] = C_Timer.NewTimer(0.5, checkOwnSoulstone)
         timers[#timers + 1] = C_Timer.NewTimer(2, checkOwnSoulstone)
-        timers[#timers + 1] = C_Timer.NewTimer(15, reset)
+        -- Bounded polling covers aura removal/revival and expires the alive message.
+        timers[#timers + 1] = C_Timer.NewTicker(0.5, function()
+            restitution:check(encounter)
+            render()
+        end)
+        timers[#timers + 1] = C_Timer.NewTimer(30, function() reset() end)
     elseif event == "CHAT_MSG_ADDON" then
         local prefix, message, distribution, sender = ...
+        if prefix == "SRBT_RESTITUTION" then
+            if encounter and GetTime() < deadline and channel() then
+                restitution:receive(message, distribution, sender, encounter)
+                render()
+            end
+            return
+        end
         if prefix == PREFIX then
             debugLog("Received: " .. debugValue(sender) .. " / " .. debugValue(distribution) .. " / " .. debugValue(message))
         end
@@ -353,6 +383,10 @@ events:SetScript("OnEvent", function(_, event, ...)
         if readyCheckActive then checkReadySoulstone()
         elseif not channel() then reset() else render() end
     else
+        if pullEncounter or encounter then
+            restitution:check(encounter)
+            if encounter then render() end
+        end
         checkOwnSoulstone()
     end
 end)

@@ -13,6 +13,7 @@ Randomizer.lua
 SettingsHelper.lua
 BreakTimerFrameHelper.lua
 RaidGroupHelper.lua
+RaidRestitutionHelper.lua
 RaidSoulstoneHelper.lua
 BossModCompatibility.lua
 PartyRoleHelper.lua
