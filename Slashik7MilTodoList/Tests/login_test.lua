@@ -12,6 +12,8 @@ addon.RegisterSettingsUI = function() end
 addon.CheckWeeklyReset = function() end
 addon.RegisterCharacter = function() end
 addon.UpdateWarbandMoney = function() return true end
+addon.ScanAutomaticCompletions = function() return false end
+addon.HandleQuestTurnedIn = function() return false end
 addon.RefreshWindow = function() end
 assert(loadfile('TrackerFrame.lua'))('Slashik7MilTodoList', addon)
 addon.RefreshWindow = function() end

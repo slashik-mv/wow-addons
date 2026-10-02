@@ -14,6 +14,11 @@ UnitClass = function() return "Mage", "MAGE" end
 GetRealmName = function() return "Realm" end
 local money = 123456789
 GetMoney = function() return money end
+local completedQuests, questTitles = {}, {}
+C_QuestLog = {
+  IsQuestFlaggedCompleted = function(questID) return completedQuests[questID] == true end,
+  GetTitleForQuestID = function(questID) return questTitles[questID] end,
+}
 assert(loadfile("Settings.lua"))("Slashik7MilTodoList", addon)
 assert(loadfile("Tracker.lua"))("Slashik7MilTodoList", addon)
 addon:InitializeDatabase()
@@ -60,6 +65,21 @@ addon:SetCompleted(guid, "invalid", true)
 assert(addon.db.characters[guid].completed.invalid == nil)
 addon:SetCompleted(guid, "abundance", false)
 assert(not addon.db.characters[guid].completed.abundance)
+completedQuests[89507] = true
+assert(addon:ScanAutomaticCompletions())
+assert(addon.db.characters[guid].completed.abundance, "completed Abundance auto-checks")
+assert(addon:HandleQuestTurnedIn(93767))
+assert(addon.db.characters[guid].completed.liadrin, "Liadrin variant auto-checks")
+assert(addon:HandleQuestTurnedIn(92848))
+assert(addon.db.characters[guid].completed.assignment1, "first Special Assignment auto-checks slot one")
+assert(not addon:HandleQuestTurnedIn(92145), "wrapper and activity IDs count as one assignment")
+assert(not addon.db.characters[guid].completed.assignment2)
+assert(addon:HandleQuestTurnedIn(94866))
+assert(addon.db.characters[guid].completed.assignment2, "second Special Assignment auto-checks slot two")
+assert(addon:HandleQuestTurnedIn(96029))
+assert(addon.db.characters[guid].completed.assignment3, "Coiled Isle assignment auto-checks slot three")
+questTitles[99999] = "Special Assignment: A Future Assignment"
+assert(not addon:HandleQuestTurnedIn(99999), "future assignment is recorded after both regular slots are full")
 addon:SetCompleted(guid, "abundance", true)
 addon:InitializeDatabase()
 assert(addon.db.characters[guid].completed.abundance, "reload preserves progress")
@@ -68,6 +88,7 @@ assert(not addon:CheckWeeklyReset())
 now, seconds = 1100, 604800
 assert(addon:CheckWeeklyReset(), "deadline resets all alts")
 assert(next(addon.db.characters[guid].completed) == nil)
+assert(next(addon.db.characters[guid].automaticAssignments) == nil)
 assert(next(addon.db.characters["Player-A"].completed) == nil)
 assert(addon.db.order[1] == guid, "reset preserves order")
 addon:SetCompleted(guid, "liadrin", true)

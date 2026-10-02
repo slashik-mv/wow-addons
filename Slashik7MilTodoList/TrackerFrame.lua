@@ -132,11 +132,15 @@ function addon:CreateWindow()
   scroll:SetScrollChild(content)
   frame.content, frame.rows = content, {}
   frame.empty = Text(content, "GameFontHighlight", 12, -24, 870, "Log into a level-80 or higher character to add it to your checklist.")
-  Text(frame, "GameFontDisableSmall", 22, -506, 900, "Manual checkboxes • Progress resets every week • Use Up / Dn to reorder characters")
+  Text(frame, "GameFontDisableSmall", 22, -506, 900, "Automatic quest checks • Click to adjust manually • Progress resets every week • Use Up / Dn to reorder")
   local settings = Button(frame, "Settings", 110, 25, function() self:OpenSettings() end)
   settings:SetPoint("BOTTOMRIGHT", -22, 18)
   frame.resetLabel = Text(frame, "GameFontHighlightSmall", 22, -536, 740, "")
-  frame:SetScript("OnShow", function() self:CheckWeeklyReset(); self:RefreshWindow() end)
+  frame:SetScript("OnShow", function()
+    self:CheckWeeklyReset()
+    self:ScanAutomaticCompletions()
+    self:RefreshWindow()
+  end)
 end
 
 function addon:CreateRow(index)

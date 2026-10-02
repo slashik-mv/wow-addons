@@ -7,6 +7,7 @@ events:RegisterEvent("PLAYER_ENTERING_WORLD")
 events:RegisterEvent("PLAYER_MONEY")
 events:RegisterEvent("ACCOUNT_MONEY")
 events:RegisterEvent("BANKFRAME_OPENED")
+events:RegisterEvent("QUEST_TURNED_IN")
 events:SetScript("OnEvent", function(_, event, argument, isReloadingUi)
   if event == "ADDON_LOADED" then
     if argument ~= "Slashik7MilTodoList" then return end
@@ -15,6 +16,7 @@ events:SetScript("OnEvent", function(_, event, argument, isReloadingUi)
   elseif event == "PLAYER_LOGIN" then
     addon:CheckWeeklyReset()
     addon:RegisterCharacter()
+    addon:ScanAutomaticCompletions()
     addon:UpdateWarbandMoney()
     addon.resetTicker = C_Timer.NewTicker(30, function()
       addon:CheckWeeklyReset()
@@ -28,10 +30,17 @@ events:SetScript("OnEvent", function(_, event, argument, isReloadingUi)
     if addon:UpdateWarbandMoney() and addon.window and addon.window:IsShown() then
       addon:RefreshWindow()
     end
+  elseif event == "QUEST_TURNED_IN" and addon.db then
+    if addon:HandleQuestTurnedIn(argument) and addon.window and addon.window:IsShown() then
+      addon:RefreshWindow()
+    end
   elseif addon.db then
     addon:CheckWeeklyReset()
     addon:RegisterCharacter(event == "PLAYER_LEVEL_UP" and argument or nil)
-    if event == "PLAYER_ENTERING_WORLD" then addon:UpdateWarbandMoney() end
+    if event == "PLAYER_ENTERING_WORLD" then
+      addon:UpdateWarbandMoney()
+      addon:ScanAutomaticCompletions()
+    end
     if addon.window and addon.window:IsShown() then addon:RefreshWindow() end
     if event == "PLAYER_ENTERING_WORLD" and (argument or isReloadingUi) then
       -- Wait until world-entry UI initialization has finished before opening.
