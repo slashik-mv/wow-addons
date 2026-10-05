@@ -121,6 +121,7 @@ local soulstoneDeadline = 0
 -- Observe only readable, out-of-combat buffs. Never infer absence from restricted data.
 local function rememberSoulstone(unit)
     if pullEncounter or InCombatLockdown() or not channel() then return end
+    if C_Secrets and C_Secrets.ShouldAurasBeSecret() then return end
     local name = fullName(unit)
     if not name then return end
     visibleSoulstones[name] = nil
@@ -213,6 +214,7 @@ local function checkReadySoulstone()
     if not readyCheckActive then return end
     if warning then warning:Hide() end
     if not channel() or InCombatLockdown() then return end
+    if C_Secrets and C_Secrets.ShouldAurasBeSecret() then return end
     local warlock, unknown = false, false
     for i = 1, GetNumGroupMembers() do
         local unit = "raid" .. i

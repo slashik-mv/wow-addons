@@ -10,6 +10,9 @@ function createRaidRestitutionHelper(fullName, raidUnit, channel, debugLog)
 
     -- nil means unknown, never absence: restricted aura data must not imply revival.
     local function hasAngel()
+        -- Access itself is forbidden while auras are restricted; checking returned
+        -- secret values is too late. Unknown is not evidence that angel form ended.
+        if InCombatLockdown() or (C_Secrets and C_Secrets.ShouldAurasBeSecret()) then return nil end
         local unknown = false
         for i = 1, 255 do
             local aura = C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL")
