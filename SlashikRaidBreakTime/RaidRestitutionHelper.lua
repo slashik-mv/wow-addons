@@ -2,6 +2,7 @@
 function createRaidRestitutionHelper(fullName, raidUnit, channel, debugLog)
     local helper = {}
     local reports = {}
+    local observed = {}
     local witnessed, aliveUntil, lastState = false, nil, nil
 
     local function secret(value)
@@ -9,13 +10,13 @@ function createRaidRestitutionHelper(fullName, raidUnit, channel, debugLog)
     end
 
     -- nil means unknown, never absence: restricted aura data must not imply revival.
-    local function hasAngel()
+    local function hasAngel(unit)
         -- Access itself is forbidden while auras are restricted; checking returned
         -- secret values is too late. Unknown is not evidence that angel form ended.
         if InCombatLockdown() or (C_Secrets and C_Secrets.ShouldAurasBeSecret()) then return nil end
         local unknown = false
         for i = 1, 255 do
-            local aura = C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL")
+            local aura = C_UnitAuras.GetAuraDataByIndex(unit or "player", i, "HELPFUL")
             if secret(aura) then return nil end
             if not aura then
                 if unknown then return nil end
@@ -28,10 +29,58 @@ function createRaidRestitutionHelper(fullName, raidUnit, channel, debugLog)
 
     function helper:reset()
         reports = {}
+        observed = {}
         witnessed, aliveUntil, lastState = false, nil, nil
     end
 
+    -- Local-only fallback, never broadcast as a confirmed Restitution report.
+    -- Called only during the existing bounded post-wipe monitoring window.
+    local function observePriests()
+        for _, info in pairs(observed) do info.readable = false end
+        if InCombatLockdown() or (C_Secrets and C_Secrets.ShouldAurasBeSecret()) then return end
+        local present = {}
+        for i = 1, GetNumGroupMembers() do
+            local unit = "raid" .. i
+            local _, class = UnitClass(unit)
+            if not secret(class) and class == "PRIEST" then
+                local name = fullName(unit)
+                if name then
+                    present[name] = true
+                    local connected, visible = UnitIsConnected(unit), UnitIsVisible(unit)
+                    local ghost, dead = UnitIsGhost(unit), UnitIsDead(unit)
+                    if reports[name] ~= nil or secret(connected) or not connected
+                        or (not secret(ghost) and ghost) then
+                        observed[name] = nil
+                    elseif not secret(visible) and visible and not secret(ghost) and not secret(dead) then
+                        local angel = hasAngel(unit)
+                        local info = observed[name]
+                        if angel == true then
+                            observed[name] = { state = "angel", readable = true }
+                            if not info or info.state ~= "angel" then
+                                debugLog("Observed priest angel (unconfirmed): " .. name)
+                            end
+                        elseif angel == false and info then
+                            if dead then
+                                observed[name] = nil
+                            else
+                                if info.state == "angel" then
+                                    info.state, info.untilTime = "alive", GetTime() + 7
+                                    debugLog("Observed priest alive after angel: " .. name)
+                                end
+                                info.readable = true
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        for name in pairs(observed) do
+            if not present[name] then observed[name] = nil end
+        end
+    end
+
     function helper:check(encounter)
+        if encounter and channel() then observePriests() end
         local _, class = UnitClass("player")
         if class ~= "PRIEST" or not channel() then return end
         local known = C_SpellBook.IsSpellKnown(391124)
@@ -95,6 +144,30 @@ function createRaidRestitutionHelper(fullName, raidUnit, channel, debugLog)
             return table.concat(angels, ", ") .. " — Restitution active.\nWait for the priest to revive!"
         elseif #alive > 0 then
             return table.concat(alive, ", ") .. " — alive!\nWait for resurrection."
+        end
+        -- Confirmed reports above always win. Never infer Restitution from angel form.
+        local fallbackAngels, fallbackAlive = {}, {}
+        for name, info in pairs(observed) do
+            local unit = raidUnit(name)
+            if reports[name] == nil and info.readable and unit then
+                local connected, visible = UnitIsConnected(unit), UnitIsVisible(unit)
+                local ghost, dead = UnitIsGhost(unit), UnitIsDead(unit)
+                if not secret(connected) and connected and not secret(visible) and visible
+                    and not secret(ghost) and not ghost then
+                    if info.state == "angel" then
+                        fallbackAngels[#fallbackAngels + 1] = Ambiguate(name, "none")
+                    elseif not secret(dead) and not dead and GetTime() < info.untilTime then
+                        fallbackAlive[#fallbackAlive + 1] = Ambiguate(name, "none")
+                    end
+                end
+            end
+        end
+        table.sort(fallbackAngels)
+        table.sort(fallbackAlive)
+        if #fallbackAlive > 0 then
+            return table.concat(fallbackAlive, ", ") .. " — alive!\nWait for resurrection."
+        elseif #fallbackAngels > 0 then
+            return table.concat(fallbackAngels, ", ") .. " — angel form detected.\nRevival not confirmed.", "DON'T RELEASE YET!"
         end
     end
     return helper

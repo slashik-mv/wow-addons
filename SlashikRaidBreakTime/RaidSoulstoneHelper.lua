@@ -187,9 +187,9 @@ local function render()
         showWarning("DON'T RELEASE!", table.concat(names, ", ") .. (#names == 1 and " has a Soulstone." or " have Soulstones."))
         return -- Confirmed reports always take priority over remembered buffs.
     end
-    local restitutionWarning = restitution:warning()
+    local restitutionWarning, restitutionTitle = restitution:warning()
     if restitutionWarning then
-        showWarning("DON'T RELEASE!", restitutionWarning)
+        showWarning(restitutionTitle or "DON'T RELEASE!", restitutionWarning)
         return
     end
     if fallbackReady and GetTime() < soulstoneDeadline then
