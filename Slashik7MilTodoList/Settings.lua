@@ -18,6 +18,16 @@ function addon:InitializeDatabase()
   db.characters = db.characters or {}
   db.order = db.order or {}
   db.version = 1
+  if (db.automationVersion or 0) < 2 then
+    -- Version 1.6 used historical quest flags that can survive a weekly reset.
+    -- Clear that unreliable snapshot once; future automatic checks come from turn-ins.
+    for _, character in pairs(db.characters) do
+      character.completed = character.completed or {}
+      for _, task in ipairs(self.tasks) do character.completed[task.id] = nil end
+      character.automaticAssignments = {}
+    end
+    db.automationVersion = 2
+  end
   for key, value in pairs(self.defaults) do
     if db.settings[key] == nil then db.settings[key] = value end
   end

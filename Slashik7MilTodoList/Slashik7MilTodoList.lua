@@ -16,7 +16,7 @@ events:SetScript("OnEvent", function(_, event, argument, isReloadingUi)
   elseif event == "PLAYER_LOGIN" then
     addon:CheckWeeklyReset()
     addon:RegisterCharacter()
-    addon:ScanAutomaticCompletions()
+    addon:ReconcileActiveTrackedQuests()
     addon:UpdateWarbandMoney()
     addon.resetTicker = C_Timer.NewTicker(30, function()
       addon:CheckWeeklyReset()
@@ -39,7 +39,7 @@ events:SetScript("OnEvent", function(_, event, argument, isReloadingUi)
     addon:RegisterCharacter(event == "PLAYER_LEVEL_UP" and argument or nil)
     if event == "PLAYER_ENTERING_WORLD" then
       addon:UpdateWarbandMoney()
-      addon:ScanAutomaticCompletions()
+      addon:ReconcileActiveTrackedQuests()
     end
     if addon.window and addon.window:IsShown() then addon:RefreshWindow() end
     if event == "PLAYER_ENTERING_WORLD" and (argument or isReloadingUi) then

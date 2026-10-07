@@ -14,9 +14,9 @@ UnitClass = function() return "Mage", "MAGE" end
 GetRealmName = function() return "Realm" end
 local money = 123456789
 GetMoney = function() return money end
-local completedQuests, questTitles = {}, {}
+local activeQuests, questTitles = {}, {}
 C_QuestLog = {
-  IsQuestFlaggedCompleted = function(questID) return completedQuests[questID] == true end,
+  IsOnQuest = function(questID) return activeQuests[questID] == true end,
   GetTitleForQuestID = function(questID) return questTitles[questID] end,
 }
 assert(loadfile("Settings.lua"))("Slashik7MilTodoList", addon)
@@ -65,11 +65,28 @@ addon:SetCompleted(guid, "invalid", true)
 assert(addon.db.characters[guid].completed.invalid == nil)
 addon:SetCompleted(guid, "abundance", false)
 assert(not addon.db.characters[guid].completed.abundance)
-completedQuests[89507] = true
-assert(addon:ScanAutomaticCompletions())
-assert(addon.db.characters[guid].completed.abundance, "completed Abundance auto-checks")
+addon:SetCompleted(guid, "abundance", true)
+activeQuests[89507] = true
+assert(addon:ReconcileActiveTrackedQuests())
+assert(not addon.db.characters[guid].completed.abundance, "an active weekly must stay unchecked before turn-in")
+activeQuests[89507] = nil
+assert(addon:HandleQuestTurnedIn(89507))
+assert(addon.db.characters[guid].completed.abundance, "turned-in Abundance auto-checks")
+addon:SetCompleted(guid, "haranir", true)
+activeQuests[92720] = true
+assert(addon:ReconcileActiveTrackedQuests())
+assert(not addon.db.characters[guid].completed.haranir, "an active Haranir story clears a stale check")
+activeQuests[92720] = nil
+assert(addon:HandleQuestTurnedIn(92720))
+assert(addon.db.characters[guid].completed.haranir, "turned-in Haranir story auto-checks")
 assert(addon:HandleQuestTurnedIn(93767))
 assert(addon.db.characters[guid].completed.liadrin, "Liadrin variant auto-checks")
+activeQuests[98172] = true
+assert(addon:ReconcileActiveTrackedQuests())
+assert(not addon.db.characters[guid].completed.liadrin, "active Trailing Xal'atath clears a stale Apex Cache check")
+activeQuests[98172] = nil
+assert(addon:HandleQuestTurnedIn(98172))
+assert(addon.db.characters[guid].completed.liadrin, "turned-in Trailing Xal'atath auto-checks the Apex Cache")
 assert(addon:HandleQuestTurnedIn(92848))
 assert(addon.db.characters[guid].completed.assignment1, "first Special Assignment auto-checks slot one")
 assert(not addon:HandleQuestTurnedIn(92145), "wrapper and activity IDs count as one assignment")
@@ -98,4 +115,11 @@ assert(addon.db.nextReset == nil)
 seconds = 400
 addon:CheckWeeklyReset()
 assert(addon.db.nextReset == now + 400, "server timing recovers")
-print("PASS: registration, deduplication, level-up, ordering, manual checks, persistence, weekly/offline reset, API recovery")
+addon.db.characters[guid].completed = { abundance = true, haranir = true, liadrin = true }
+addon.db.characters[guid].automaticAssignments = { oldScan = true }
+addon.db.automationVersion = 1
+addon:InitializeDatabase()
+assert(addon.db.automationVersion == 2)
+assert(next(addon.db.characters[guid].completed) == nil, "1.6 automatic results are cleared once")
+assert(next(addon.db.characters[guid].automaticAssignments) == nil, "1.6 assignment scan is cleared once")
+print("PASS: registration, ordering, manual and automatic checks, active quest reconciliation, persistence, weekly reset, migration")

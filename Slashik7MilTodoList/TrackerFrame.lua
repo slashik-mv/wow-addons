@@ -138,7 +138,7 @@ function addon:CreateWindow()
   frame.resetLabel = Text(frame, "GameFontHighlightSmall", 22, -536, 740, "")
   frame:SetScript("OnShow", function()
     self:CheckWeeklyReset()
-    self:ScanAutomaticCompletions()
+    self:ReconcileActiveTrackedQuests()
     self:RefreshWindow()
   end)
 end

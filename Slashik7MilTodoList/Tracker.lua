@@ -10,7 +10,7 @@ local AUTOMATIC_TASK_QUESTS = {
   },
   liadrin = {
     93766, 93767, 93769, 93889, 93890, 93892, 93909, 93910,
-    93911, 93912, 93913, 94457, 95842, 95843, 96727, 98232,
+    93911, 93912, 93913, 94457, 95842, 95843, 96727, 98172, 98232,
   },
 }
 
@@ -38,9 +38,14 @@ for _, assignment in ipairs(SPECIAL_ASSIGNMENTS) do
   for _, questID in ipairs(assignment.ids) do QUEST_ASSIGNMENT[questID] = assignment end
 end
 
-local function IsQuestCompleted(questID)
-  return C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted
-    and C_QuestLog.IsQuestFlaggedCompleted(questID) == true
+local function IsQuestOnLog(questID)
+  if not C_QuestLog then return false end
+  if C_QuestLog.IsOnQuest then return C_QuestLog.IsOnQuest(questID) == true end
+  if C_QuestLog.GetLogIndexForQuestID then
+    local index = C_QuestLog.GetLogIndexForQuestID(questID)
+    return type(index) == "number" and index > 0
+  end
+  return false
 end
 
 -- Store the actual regional deadline, so offline characters reset together.
@@ -195,25 +200,22 @@ function addon:HandleQuestTurnedIn(questID)
   return false
 end
 
-function addon:ScanAutomaticCompletions()
-  if not self.db or not C_QuestLog or not C_QuestLog.IsQuestFlaggedCompleted then return false end
+function addon:ReconcileActiveTrackedQuests()
+  if not self.db then return false end
   self:CheckWeeklyReset()
   self:RegisterCharacter()
+  local guid = UnitGUID("player")
+  local character = guid and self.db.characters[guid]
+  if not character then return false end
   local changed = false
 
   for taskID, questIDs in pairs(AUTOMATIC_TASK_QUESTS) do
     for _, questID in ipairs(questIDs) do
-      if IsQuestCompleted(questID) then
-        changed = self:CompleteCurrentTask(taskID) or changed
-        break
-      end
-    end
-  end
-
-  for _, assignment in ipairs(SPECIAL_ASSIGNMENTS) do
-    for _, questID in ipairs(assignment.ids) do
-      if IsQuestCompleted(questID) then
-        changed = self:RecordSpecialAssignment(assignment) or changed
+      if IsQuestOnLog(questID) then
+        if character.completed[taskID] then
+          character.completed[taskID] = nil
+          changed = true
+        end
         break
       end
     end
