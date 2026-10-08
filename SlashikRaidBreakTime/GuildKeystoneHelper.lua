@@ -45,6 +45,7 @@ function createGuildKeystoneHelper()
     end
 
     local function render()
+        if not isRaidBreakModuleEnabled("keystones") then return end
         if not window or not window.ready or not window:IsShown() or InCombatLockdown() then return end
         -- Re-sort as key replies arrive; names provide a stable tie-breaker.
         table.sort(members, function(a, b)
@@ -95,6 +96,7 @@ function createGuildKeystoneHelper()
     end
 
     lib.Register(helper, function(level, mapID, _, sender, channel)
+        if not isRaidBreakModuleEnabled("keystones") then return end
         if channel ~= "GUILD" or not IsInGuild() then return end
         if type(level) ~= "number" or type(mapID) ~= "number" then return end
         if level < 0 or level > 1000 or mapID < 0 or mapID > 100000 or (level == 0) ~= (mapID == 0) then return end
@@ -111,6 +113,7 @@ function createGuildKeystoneHelper()
     end)
 
     function helper:refresh()
+        if not isRaidBreakModuleEnabled("keystones") then return end
         if GetTime() < nextRequest then return end
         nextRequest = GetTime() + 3
         roster()
@@ -123,6 +126,7 @@ function createGuildKeystoneHelper()
     end
 
     function helper:show()
+        if not isRaidBreakModuleEnabled("keystones") then return end
         if InCombatLockdown() then
             openAfterCombat = true
             print("SlashikRaidBreakTime: The guild keystone window will open after combat.")
@@ -240,9 +244,11 @@ function createGuildKeystoneHelper()
     -- One delayed request per guild per login. Incoming replies are cached even with the window closed.
     local initialTimer
     local function requestInitialKeys()
+        if not isRaidBreakModuleEnabled("keystones") then return end
         if initialTimer or not guildID or initialRequestGuild == guildID or #members == 0 then return end
         initialTimer = C_Timer.NewTimer(5, function()
             initialTimer = nil
+            if not isRaidBreakModuleEnabled("keystones") then return end
             roster()
             if guildID and initialRequestGuild ~= guildID and #members > 0 then
                 helper:refresh()
@@ -253,6 +259,7 @@ function createGuildKeystoneHelper()
     local events = CreateFrame("Frame")
     for _, event in ipairs({ "PLAYER_LOGIN", "GUILD_ROSTER_UPDATE", "PLAYER_GUILD_UPDATE", "PLAYER_REGEN_ENABLED", "SPELLS_CHANGED", "SPELL_UPDATE_COOLDOWN" }) do events:RegisterEvent(event) end
     events:SetScript("OnEvent", function(_, event)
+        if not isRaidBreakModuleEnabled("keystones") then return end
         if event == "PLAYER_REGEN_ENABLED" and openAfterCombat then
             openAfterCombat = false
             helper:show()
@@ -262,6 +269,17 @@ function createGuildKeystoneHelper()
             if event ~= "GUILD_ROSTER_UPDATE" and IsInGuild() then C_GuildInfo.GuildRoster() end
             requestInitialKeys()
         else render() end
+    end)
+    registerRaidBreakModuleListener("keystones", function(enabled)
+        openAfterCombat = false
+        if initialTimer then initialTimer:Cancel(); initialTimer = nil end
+        if not enabled and window then window:Hide() end
+        if enabled then
+            initialRequestGuild = nil
+            roster()
+            if IsInGuild() then C_GuildInfo.GuildRoster() end
+            requestInitialKeys()
+        end
     end)
     return helper
 end

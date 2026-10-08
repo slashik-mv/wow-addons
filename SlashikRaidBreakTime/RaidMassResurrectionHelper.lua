@@ -15,6 +15,7 @@ local function secret(value)
 end
 
 local function inRaidInstance()
+    if not isRaidBreakModuleEnabled("raidRecovery") then return false end
     local _, kind = GetInstanceInfo()
     return IsInRaid() and kind == "raid"
 end
@@ -24,6 +25,8 @@ local function stop()
     if ticker then ticker:Cancel(); ticker = nil end
     if panel then panel:Hide() end
 end
+
+registerRaidBreakModuleListener("raidRecovery", stop)
 
 local function normalLivingPlayer()
     if InCombatLockdown() or (C_Secrets and C_Secrets.ShouldAurasBeSecret()) then return false end
@@ -102,6 +105,7 @@ for _, event in ipairs({ "ENCOUNTER_END", "ENCOUNTER_START", "PLAYER_ENTERING_WO
     events:RegisterEvent(event)
 end
 events:SetScript("OnEvent", function(_, event, ...)
+    if not isRaidBreakModuleEnabled("raidRecovery") then return end
     if event == "ENCOUNTER_START" or event == "PLAYER_ENTERING_WORLD" then
         stop()
     elseif event == "ENCOUNTER_END" then

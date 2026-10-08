@@ -14,7 +14,12 @@ local bossMods = createBossModCompatibility(addonName, frame)
 local guildKeystones = createGuildKeystoneHelper()
 local keystones = createKeystoneHelper(function() guildKeystones:show() end)
 
+registerRaidBreakModuleListener("breakTimer", function(enabled)
+    if not enabled then frame:hideBreak() end
+end)
+
 local function startBreak(minutes)
+    if not isRaidBreakModuleEnabled("breakTimer") then return end
     if not raidGroup:isAllowedToStart() then
         print("|cffff4444Slashik Raid Break Time: only the raid leader or an assistant can start a break.|r")
         return
@@ -49,6 +54,7 @@ events:SetScript("OnEvent", function(_, event, prefix, message, channel, sender)
         return
     end
 
+    if not isRaidBreakModuleEnabled("breakTimer") then return end
     if prefix == "D5" and message and raidGroup:isSenderAllowed(sender) then
         frame:showCompatibleBreak(bossMods:getDBMBreakSeconds(message))
         return
@@ -63,6 +69,10 @@ end)
 
 SLASH_SLASHIKRAIDBREAKTIME1 = "/break"
 SlashCmdList.SLASHIKRAIDBREAKTIME = function(input)
+    if not isRaidBreakModuleEnabled("breakTimer") then
+        print("SlashikRaidBreakTime: Raid Break Timer is disabled. Right-click the minimap button to enable it.")
+        return
+    end
     local command, value = input:match("^(%S*)%s*(.-)$")
     command = command:lower()
     if command == "hide" or command == "stop" then
@@ -77,12 +87,13 @@ end
 SLASH_SLASHIKRAIDBREAKSETTINGS1 = "/srbt"
 local function printSettingsHelp()
     print("|cff55ddffSlashik Raid Break Time commands:|r")
+    print("|cffffcc00/srbt options|r - Open module settings (also right-click the minimap button).")
     print("|cffffcc00/srbt key|r - Open the party keystone window.")
     print("|cffffcc00/srbt key guild|r - Open the guild keystone window.")
     print("|cffffcc00/srbt random <on|off>|r - Turn automatic image rotation on or off.")
     print("|cffffcc00/srbt timer <1-120>|r - Set how often images change, in minutes.")
     print("|cffffcc00/srbt audio <on|off>|r - Turn break-warning sounds on or off.")
-    print("|cffffcc00/srbt soulstone <on|off>|r - Turn ready-check screen reminders and raid announcements on or off (default: off). Initiator whispers and wipe warnings are always on.")
+    print("|cffffcc00/srbt soulstone <on|off>|r - Ready-check screen/raid reminders (default: off). All recovery features require the Raid Recovery module.")
     print("|cffffcc00/srbt settings|r - Show the current addon settings.")
     print("|cffffcc00/srbt soulstone debug <on|off|status>|r - Diagnose Soulstone warnings (session only).")
     print("|cffffcc00/srbt settings default|r - Reset rotation to on, timer to 1 minute, audio and ready-check Soulstone reminders to off.")
@@ -95,7 +106,13 @@ SlashCmdList.SLASHIKRAIDBREAKSETTINGS = function(input)
 
     if command == "" or command == "help" then
         printSettingsHelp()
+    elseif command == "options" then
+        showRaidBreakAddonSettings()
     elseif command == "key" then
+        if not isRaidBreakModuleEnabled("keystones") then
+            print("SlashikRaidBreakTime: Keystones is disabled. Right-click the minimap button to enable it.")
+            return
+        end
         if value:lower() == "guild" then
             guildKeystones:show()
         else
@@ -112,7 +129,10 @@ SlashCmdList.SLASHIKRAIDBREAKSETTINGS = function(input)
             print(string.format("|cff55ddffSlashik Raid Break Time: random image rotation is %s.|r", rotationStatus))
             print(string.format("|cff55ddffRandom image timer: every %d minute(s).|r", frame:getRandomTimerMinutes()))
             print(string.format("|cff55ddffBreak-warning audio is %s.|r", audioStatus))
-            print(string.format("|cff55ddffReady-check screen/raid reminders are %s. Initiator whispers and wipe warnings are always on.|r", getSettings().soulstoneEnabled and "on" or "off"))
+            print(string.format("|cff55ddffSaved ready-check screen/raid reminders: %s. All recovery features require the Raid Recovery module.|r", getSettings().soulstoneEnabled and "on" or "off"))
+            for _, module in ipairs({ "keystones", "breakTimer", "raidRecovery" }) do
+                print("SRBT module " .. module .. ": " .. (isRaidBreakModuleEnabled(module) and "enabled" or "disabled"))
+            end
         end
     elseif command == "random" then
         value = value:lower()
@@ -140,7 +160,7 @@ SlashCmdList.SLASHIKRAIDBREAKSETTINGS = function(input)
         end
         if value == "on" or value == "off" then
             setRaidSoulstoneEnabled(value == "on")
-            print("|cff55ddffSlashik Raid Break Time: ready-check screen/raid reminders are " .. value .. ". Initiator whispers and wipe warnings are always on.|r")
+            print("|cff55ddffSlashik Raid Break Time: saved ready-check screen/raid reminders are " .. value .. ". These apply only while Raid Recovery is enabled.|r")
         else
             print("|cffffcc00Usage: /srbt soulstone <on|off>|r")
         end
@@ -158,4 +178,5 @@ SlashCmdList.SLASHIKRAIDBREAKSETTINGS = function(input)
     else
         printSettingsHelp()
     end
+    refreshRaidBreakAddonSettings()
 end

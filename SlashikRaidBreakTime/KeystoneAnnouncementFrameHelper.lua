@@ -7,6 +7,10 @@ local announcementEndsAt = 0
 
 local function updateAnnouncementTeleport()
     if InCombatLockdown() then return end
+    if not isRaidBreakModuleEnabled("keystones") then
+        if teleportButton then teleportButton:Hide() end
+        return
+    end
     if not teleportButton then
         -- Keep the secure button separate so the text can still show/hide in combat.
         teleportButton = createDungeonTeleportButton(UIParent, 1)
@@ -38,6 +42,7 @@ end
 events:SetScript("OnEvent", updateAnnouncementTeleport)
 
 function showRaidBreakKeystoneAnnouncement(dungeon, level, owner, insertReminder, mapID)
+    if not isRaidBreakModuleEnabled("keystones") then return end
     if not announcementFrame then
         announcementFrame = CreateFrame("Frame", nil, UIParent)
         announcementFrame:SetSize(800, 240)
@@ -73,3 +78,10 @@ function showRaidBreakKeystoneAnnouncement(dungeon, level, owner, insertReminder
         hideTimer = nil
     end)
 end
+registerRaidBreakModuleListener("keystones", function(enabled)
+    if enabled then return end
+    if hideTimer then hideTimer:Cancel(); hideTimer = nil end
+    teleportMapID, announcementEndsAt = nil, 0
+    if announcementFrame then announcementFrame:Hide() end
+    if teleportButton then teleportButton:Hide() end
+end)

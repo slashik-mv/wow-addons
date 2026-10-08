@@ -77,6 +77,7 @@ function createRaidBreakTimeFrame()
     end
 
     function frame:showBreak(seconds, imageIndex, nextImageChangeAt, savedUsedImageIndices, oneMinuteWarningPlayed)
+        if not isRaidBreakModuleEnabled("breakTimer") then return end
         SlashikRaidBreakTimeDB = SlashikRaidBreakTimeDB or {}
         usedImageIndices = restoreUsedImageIndices(savedUsedImageIndices)
         hasPlayedOneMinuteWarning = oneMinuteWarningPlayed == true
@@ -101,6 +102,7 @@ function createRaidBreakTimeFrame()
     end
 
     function frame:playOneMinuteWarning()
+        if not isRaidBreakModuleEnabled("breakTimer") then return end
         if hasPlayedOneMinuteWarning then return end
 
         hasPlayedOneMinuteWarning = true
@@ -117,6 +119,7 @@ function createRaidBreakTimeFrame()
     end
 
     function frame:playBreakEndWarning()
+        if not isRaidBreakModuleEnabled("breakTimer") then return end
         -- Blizzard's Cooldown Manager maps its native Air Horn alert to sound-kit ID 316436.
         if getSettings().audioEnabled then
             PlaySound(316436, "Master")
@@ -212,6 +215,7 @@ function createRaidBreakTimeFrame()
     end
 
     function frame:restoreBreakAfterReload()
+        if not isRaidBreakModuleEnabled("breakTimer") then self:hideBreak(); return end
         SlashikRaidBreakTimeDB = SlashikRaidBreakTimeDB or {}
         local activeBreak = SlashikRaidBreakTimeDB.activeBreak
         if not activeBreak or type(activeBreak.endAt) ~= "number" then return end
@@ -234,6 +238,7 @@ function createRaidBreakTimeFrame()
     end
 
     frame:SetScript("OnUpdate", function(self)
+        if not isRaidBreakModuleEnabled("breakTimer") then self:hideBreak(); return end
         if not self:IsShown() then return end
         local remaining = breakEndTime - GetTime()
         self.timer:SetText(formatTime(remaining))

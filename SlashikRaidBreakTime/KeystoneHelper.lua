@@ -88,6 +88,7 @@ function createKeystoneHelper(openGuildKeys)
     end
 
     local function render()
+        if not isRaidBreakModuleEnabled("keystones") then return end
         if not window or not window.initialized or not window:IsShown() or InCombatLockdown() then return end
         local members = partyMembers()
         window.layout:apply(#members)
@@ -137,6 +138,7 @@ function createKeystoneHelper(openGuildKeys)
     -- Only display current party members. LibKeystone shortens same-realm names,
     -- so resolve its callbacks back to the full names used by our rows.
     libKeystone.Register(helper, function(level, mapID, _, sender, channel)
+        if not isRaidBreakModuleEnabled("keystones") then return end
         if channel ~= "PARTY" or IsInRaid() then return end
         if type(level) ~= "number" or type(mapID) ~= "number" then return end
         if level < 0 or level > 1000 or mapID < 0 or mapID > 100000 then return end
@@ -151,6 +153,7 @@ function createKeystoneHelper(openGuildKeys)
     end)
 
     function helper:refresh()
+        if not isRaidBreakModuleEnabled("keystones") then return end
         if GetTime() < nextRequestAt then
             if not refreshTimer then scheduleRefresh() end
             return
@@ -169,6 +172,7 @@ function createKeystoneHelper(openGuildKeys)
     end
 
     function helper:show()
+        if not isRaidBreakModuleEnabled("keystones") then return end
         if InCombatLockdown() then
             showAfterCombat = true
             print("SlashikRaidBreakTime: The keystone window will open after combat.")
@@ -316,6 +320,7 @@ function createKeystoneHelper(openGuildKeys)
                 -- Keep this window preference separate from the break-timer settings.
                 SlashikRaidBreakTimeDB = SlashikRaidBreakTimeDB or {}
                 SlashikRaidBreakTimeDB.autoOpenKeystones = self:GetChecked() == true
+                refreshRaidBreakAddonSettings()
             end)
 
             -- Keep the decorative keystone in its own column above Refresh.
@@ -369,6 +374,7 @@ function createKeystoneHelper(openGuildKeys)
     events:RegisterEvent("SPELLS_CHANGED")
     events:RegisterEvent("SPELL_UPDATE_COOLDOWN")
     events:SetScript("OnEvent", function(_, event)
+        if not isRaidBreakModuleEnabled("keystones") then return end
         if event == "PLAYER_LOGIN" then
             updateRoster()
         elseif event == "PLAYER_REGEN_ENABLED" then
@@ -398,5 +404,12 @@ function createKeystoneHelper(openGuildKeys)
         end
     end)
 
+    registerRaidBreakModuleListener("keystones", function(enabled)
+        cancelPendingRefresh()
+        keyRoll.cancel()
+        showAfterCombat = false
+        if not enabled and window then window:Hide() end
+        if enabled then updateRoster() end
+    end)
     return helper
 end

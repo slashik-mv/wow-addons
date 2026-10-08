@@ -1,5 +1,6 @@
 -- Called only by a guild row's Whisper button; keep the realm in the recipient.
 function whisperGuildKeystoneOwner(name, mapID, level)
+    if not isRaidBreakModuleEnabled("keystones") then return end
     if not IsInGuild() or type(name) ~= "string" or name == "" then return end
     if type(mapID) ~= "number" or type(level) ~= "number" or mapID <= 0 or level <= 0 then return end
     local dungeon = C_ChallengeMode.GetMapUIInfo(mapID)
@@ -11,6 +12,7 @@ end
 
 -- Called directly by a Post button click to announce a known keystone in /g.
 function postKeystoneToGuild(mapID, level)
+    if not isRaidBreakModuleEnabled("keystones") then return end
     if not IsInGuild() then
         print("SlashikRaidBreakTime: Join a guild to post a keystone in guild chat.")
         return

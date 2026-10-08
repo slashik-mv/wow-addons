@@ -96,6 +96,7 @@ local function announceReadyWarning()
 end
 
 local function channel()
+    if not isRaidBreakModuleEnabled("raidRecovery") then return nil end
     local _, instanceType = GetInstanceInfo()
     if not IsInRaid() or instanceType ~= "raid" then return nil end
     return IsInGroup(LE_PARTY_CATEGORY_INSTANCE) and "INSTANCE_CHAT" or "RAID"
@@ -259,7 +260,12 @@ local function reset(preserveRestitution)
     if warning then warning:Hide() end
 end
 
--- Only ready-check screen/raid messages are optional; whispers and wipe recovery stay enabled.
+-- Individual preferences never override the recovery module's master switch.
+registerRaidBreakModuleListener("raidRecovery", function()
+    reset()
+    pullEncounter, pullSoulstones, visibleSoulstones = nil, {}, {}
+end)
+
 function setRaidSoulstoneEnabled(enabled)
     getSettings().soulstoneEnabled = enabled == true
     if not enabled and readyCheckActive and warning then warning:Hide() end
@@ -293,6 +299,7 @@ for _, event in ipairs({ "PLAYER_LOGIN", "ENCOUNTER_START", "ENCOUNTER_END", "CH
     "PLAYER_ENTERING_WORLD", "GROUP_ROSTER_UPDATE", "READY_CHECK", "READY_CHECK_FINISHED",
     "UNIT_AURA", "UNIT_FLAGS", "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED" }) do events:RegisterEvent(event) end
 events:SetScript("OnEvent", function(_, event, ...)
+    if event ~= "PLAYER_LOGIN" and not isRaidBreakModuleEnabled("raidRecovery") then return end
     if event == "PLAYER_LOGIN" then
         C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
         C_ChatInfo.RegisterAddonMessagePrefix("SRBT_RESTITUTION")

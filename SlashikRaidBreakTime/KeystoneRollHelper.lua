@@ -55,6 +55,7 @@ function createKeystoneRollHelper()
     end)
 
     function helper:start(keys, callback)
+        if not isRaidBreakModuleEnabled("keystones") then return end
         if pending then return end
         if #keys == 0 then
             print("SlashikRaidBreakTime: No available keys to roll. Try Refresh first.")

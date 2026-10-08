@@ -30,11 +30,13 @@ local function dungeonName(mapID, level)
 end
 
 function canAnnounceKeystoneToParty()
+    if not isRaidBreakModuleEnabled("keystones") then return false end
     return partyChannel() ~= nil and GetTime() >= nextSendAt
 end
 
 -- Called by Let's Go or a completed roll: send chat once and sync the visual separately.
 function announceKeystoneToParty(owner, mapID, level)
+    if not isRaidBreakModuleEnabled("keystones") then return end
     local channel = partyChannel()
     local unit = partyUnit(owner)
     local dungeon = dungeonName(mapID, level)
@@ -56,6 +58,7 @@ events:RegisterEvent("PLAYER_LOGIN")
 events:RegisterEvent("GROUP_ROSTER_UPDATE")
 events:RegisterEvent("CHAT_MSG_ADDON")
 events:SetScript("OnEvent", function(_, event, prefix, message, channel, sender)
+    if event ~= "PLAYER_LOGIN" and not isRaidBreakModuleEnabled("keystones") then return end
     if event == "PLAYER_LOGIN" then
         C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
     elseif event == "GROUP_ROSTER_UPDATE" then

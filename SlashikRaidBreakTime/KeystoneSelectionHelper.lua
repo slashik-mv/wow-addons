@@ -18,6 +18,7 @@ local function clearSelection()
 end
 
 function saveSelectedKeystone(owner, mapID, level)
+    if not isRaidBreakModuleEnabled("keystones") then return end
     if C_ChallengeMode.IsChallengeModeActive() then clearSelection(); return end
     SlashikRaidBreakTimeDB = SlashikRaidBreakTimeDB or {}
     SlashikRaidBreakTimeDB.selectedKeystone = { owner = owner, mapID = mapID, level = level }
@@ -63,6 +64,7 @@ for _, event in ipairs({ "START_PLAYER_COUNTDOWN", "CANCEL_PLAYER_COUNTDOWN", "G
     events:RegisterEvent(event)
 end
 events:SetScript("OnEvent", function(_, event, initiator, seconds)
+    if not isRaidBreakModuleEnabled("keystones") then return end
     if event == "START_PLAYER_COUNTDOWN" then
         remindOwner(initiator, seconds)
     elseif event == "CANCEL_PLAYER_COUNTDOWN" then
@@ -74,3 +76,4 @@ events:SetScript("OnEvent", function(_, event, initiator, seconds)
         clearSelection()
     end
 end)
+registerRaidBreakModuleListener("keystones", clearSelection)
