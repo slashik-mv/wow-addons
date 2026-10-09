@@ -14,6 +14,15 @@ local bossMods = createBossModCompatibility(addonName, frame)
 local guildKeystones = createGuildKeystoneHelper()
 local keystones = createKeystoneHelper(function() guildKeystones:show() end)
 
+-- Shared entry point for the minimap button and the party-keystone command.
+function showRaidBreakPartyKeystones()
+    if not isRaidBreakModuleEnabled("keystones") then
+        print("SlashikRaidBreakTime: Keystones is disabled. Right-click the minimap button to enable it.")
+        return
+    end
+    keystones:show()
+end
+
 registerRaidBreakModuleListener("breakTimer", function(enabled)
     if not enabled then frame:hideBreak() end
 end)
@@ -116,7 +125,7 @@ SlashCmdList.SLASHIKRAIDBREAKSETTINGS = function(input)
         if value:lower() == "guild" then
             guildKeystones:show()
         else
-            keystones:show()
+            showRaidBreakPartyKeystones()
         end
     elseif command == "settings" then
         if value:lower() == "default" then
