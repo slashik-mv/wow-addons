@@ -152,7 +152,7 @@ local function showWarning(titleText, subtitleText)
     if not warning then
         warning = CreateFrame("Frame", nil, UIParent)
         warning:SetSize(800, 240)
-        warning:SetPoint("CENTER")
+        registerRaidBreakAlertPosition(warning, "recovery")
         warning:SetFrameStrata("FULLSCREEN_DIALOG")
         warning:EnableMouse(false)
         local title = warning:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")

@@ -46,7 +46,7 @@ end
 local function createPanel()
     panel = CreateFrame("Frame", "SlashikRaidBreakTimeMassResurrectionFrame", UIParent)
     panel:SetSize(300, 80)
-    panel:SetPoint("CENTER", UIParent, "CENTER", 0, -115)
+    registerRaidBreakAlertPosition(panel, "massRes")
     panel:SetFrameStrata("FULLSCREEN_DIALOG")
     -- This Blizzard template permits click-casting only outside combat and does not
     -- protect its parents, so hiding this independent prompt in combat remains safe.

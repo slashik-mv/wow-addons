@@ -29,7 +29,8 @@ local function updateAnnouncementTeleport()
         if bottom then
             local scale = announcementFrame:GetEffectiveScale() / UIParent:GetEffectiveScale()
             teleportButton:ClearAllPoints()
-            teleportButton:SetPoint("TOP", UIParent, "BOTTOMLEFT", UIParent:GetWidth() / 2, bottom * scale - 16)
+            local centerX = announcementFrame:GetCenter()
+            teleportButton:SetPoint("TOP", UIParent, "BOTTOMLEFT", centerX * scale, bottom * scale - 16)
         end
     end
     teleportButton:SetShown(visible)
@@ -46,7 +47,7 @@ function showRaidBreakKeystoneAnnouncement(dungeon, level, owner, insertReminder
     if not announcementFrame then
         announcementFrame = CreateFrame("Frame", nil, UIParent)
         announcementFrame:SetSize(800, 240)
-        announcementFrame:SetPoint("CENTER")
+        registerRaidBreakAlertPosition(announcementFrame, "keystones", updateAnnouncementTeleport)
         announcementFrame:SetFrameStrata("FULLSCREEN_DIALOG")
         announcementFrame:EnableMouse(false)
         local title = announcementFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")

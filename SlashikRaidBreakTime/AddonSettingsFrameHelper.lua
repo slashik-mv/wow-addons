@@ -50,7 +50,7 @@ local modules = {
 function showRaidBreakAddonSettings()
     if not window then
         window = CreateFrame("Frame", "SlashikRaidBreakTimeSettingsFrame", UIParent, "BasicFrameTemplateWithInset")
-        window:SetSize(600, 650)
+        window:SetSize(600, 695)
         window:SetPoint("CENTER")
         window:SetFrameStrata("DIALOG")
         window:SetMovable(true)
@@ -134,6 +134,11 @@ function showRaidBreakAddonSettings()
         action("raidRecovery", "Reset recovery settings", 80, -585, 200,
             function() setRaidSoulstoneEnabled(false) end)
         local footer = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+        local moveAlerts = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
+        moveAlerts:SetSize(180, 24)
+        moveAlerts:SetPoint("TOPLEFT", 80, -624)
+        moveAlerts:SetText("Move alerts")
+        moveAlerts:SetScript("OnClick", showRaidBreakAlertPositionEditor)
         footer:SetPoint("BOTTOMLEFT", 24, 20)
         footer:SetText("All modules start enabled. Module switches cannot be changed during combat.")
     end
