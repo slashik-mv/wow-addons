@@ -1,5 +1,5 @@
 local _, addon = ...
-local ROW_HEIGHT, NAME_WIDTH, COLUMN_WIDTH = 38, 280, 146
+local ROW_HEIGHT, NAME_WIDTH, COLUMN_WIDTH = 38, 350, 146
 local TABLE_WIDTH = NAME_WIDTH + #addon.tasks * COLUMN_WIDTH
 local WINDOW_WIDTH = TABLE_WIDTH + 60
 local GOLD_GOAL = 7000000 * 10000
@@ -119,7 +119,7 @@ function addon:CreateWindow()
   end
   AddGoldMilestone(5000000 * 10000, "5M", 0.25, 0.85, 1)
   AddGoldMilestone(5500000 * 10000, "5.5M", 0.85, 0.5, 1)
-  Text(frame, "GameFontNormal", 22, -114, NAME_WIDTH, "Character / realm")
+  Text(frame, "GameFontNormal", 22, -114, NAME_WIDTH, "Character / realm / gold")
   for index, task in ipairs(self.tasks) do
     local label = Text(frame, "GameFontNormal", 22 + NAME_WIDTH + (index - 1) * COLUMN_WIDTH, -106, COLUMN_WIDTH, task.label)
     label:SetJustifyH("CENTER")
@@ -149,12 +149,14 @@ function addon:CreateRow(index)
   row:SetPoint("TOPLEFT", 0, -(index - 1) * ROW_HEIGHT)
   row.background = row:CreateTexture(nil, "BACKGROUND")
   row.background:SetAllPoints()
-  row.name = Text(row, "GameFontHighlight", 4, -4, 208, "")
-  row.realm = Text(row, "GameFontDisableSmall", 4, -22, 208, "")
+  row.name = Text(row, "GameFontHighlight", 4, -4, 150, "")
+  row.realm = Text(row, "GameFontDisableSmall", 4, -22, 150, "")
+  row.money = Text(row, "GameFontHighlightSmall", 154, -7, 120, "")
+  row.money:SetJustifyH("RIGHT")
   row.up = Button(row, "Up", 30, 24, function() self:MoveCharacter(row.guid, -1); self:RefreshWindow() end)
-  row.up:SetPoint("TOPLEFT", 214, -7)
+  row.up:SetPoint("TOPLEFT", 286, -7)
   row.down = Button(row, "Dn", 30, 24, function() self:MoveCharacter(row.guid, 1); self:RefreshWindow() end)
-  row.down:SetPoint("TOPLEFT", 245, -7)
+  row.down:SetPoint("TOPLEFT", 318, -7)
   row.checks = {}
   for taskIndex, task in ipairs(self.tasks) do
     local taskID = task.id
@@ -195,6 +197,9 @@ function addon:RefreshWindow()
     local color = RAID_CLASS_COLORS[character.class]
     if color then row.name:SetTextColor(color.r, color.g, color.b) end
     row.realm:SetText(character.realm)
+    row.money:SetText(type(character.money) == "number"
+      and GetCoinTextureString(character.money)
+      or "Gold not recorded")
     row.up:SetEnabled(index > 1)
     row.down:SetEnabled(index < count)
     for taskIndex, task in ipairs(self.tasks) do
