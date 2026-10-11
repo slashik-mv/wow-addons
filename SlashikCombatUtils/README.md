@@ -1,6 +1,6 @@
 # SlashikCombatUtils
 
-Retail combat trackers with independent module switches. Version 1.0.1 targets
+Retail combat trackers with independent module switches. Version 1.0.2 targets
 interface 120100, matching SlashikRaidBreakTime in this repository.
 
 ## Bone Shield
