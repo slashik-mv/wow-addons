@@ -3,6 +3,7 @@ local definitions = {
     { key = "keystones", name = "Keystone alerts", title = "Next key: Example Dungeon +10", subtitle = "Key owner: Example", x = 0, y = 0 },
     { key = "recovery", name = "Recovery warnings", title = "DON'T RELEASE!", subtitle = "Example has a Soulstone.\nAlso used for ready-check and priest recovery warnings.", x = 0, y = 0 },
     { key = "massRes", name = "Mass Resurrect", x = 0, y = -115 },
+    { key = "keyReady", name = "Dungeon preparation", x = 0, y = -200 },
 }
 local targets, previews = {}, {}
 local editor, selected, dragging
@@ -107,6 +108,7 @@ function showRaidBreakAlertPositionEditor()
             local preview = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
             preview.key = key
             preview:SetSize(key == "massRes" and 300 or 800, key == "massRes" and 80 or 240)
+            if key == "keyReady" then preview:SetSize(270, 48) end
             preview:SetFrameStrata("FULLSCREEN_DIALOG")
             preview:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 2 })
             preview:SetBackdropColor(0.05, 0.12, 0.18, 0.8)
@@ -121,7 +123,10 @@ function showRaidBreakAlertPositionEditor()
                 self:StartMoving()
             end)
             preview:SetScript("OnDragStop", function() finishDrag(true) end)
-            if key == "massRes" then
+            if key == "keyReady" then
+                decoration(preview, "Ready Check", 120, 28, "LEFT", preview, "LEFT", 10, 0)
+                decoration(preview, "Pull 10", 120, 28, "LEFT", preview, "LEFT", 140, 0)
+            elseif key == "massRes" then
                 local cast = decoration(preview, "Mass Resurrect (preview)", 220, 32, "TOP", preview, "TOP", 0, 0)
                 decoration(preview, "Dismiss", 90, 22, "TOP", cast, "BOTTOM", 0, -6)
             else
