@@ -77,6 +77,34 @@ local function AddGreetingInput(category, layout, settings)
   layout:AddInitializer(initializer)
 end
 
+local function InitializePositionControls(initializer, frame)
+  if frame.moveButton then return end
+  local actions = {
+    { "Preview / Move", startInviteWarningPreview },
+    { "Stop preview", stopInviteWarningPreview },
+    { "Reset position", resetInviteWarningPosition },
+  }
+  for index, action in ipairs(actions) do
+    local button = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    button:SetSize(140, 26)
+    button:SetPoint("TOPLEFT", (index - 1) * 150, -4)
+    button:SetText(action[1])
+    button:SetScript("OnClick", action[2])
+    if index == 1 then frame.moveButton = button end
+  end
+  local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  hint:SetPoint("TOPLEFT", 0, -40)
+  hint:SetText("Drag the preview to move the notification. Position saves automatically. Outside combat only.")
+  frame:SetScript("OnHide", stopInviteWarningPreview)
+end
+
+local function AddPositionControls(layout)
+  local initializer = Settings.CreatePanelInitializer("SlashikWhichDungeonInvitePositionTemplate", {})
+  initializer.InitFrame = InitializePositionControls
+  initializer.Resetter = function() stopInviteWarningPreview() end
+  layout:AddInitializer(initializer)
+end
+
 local function RegisterSettingsUI()
   local settings = getSetting()
   local category, layout = Settings.RegisterVerticalLayoutCategory(ADDON_NAME)
@@ -85,6 +113,7 @@ local function RegisterSettingsUI()
   AddCheckbox(category, settings, "enabledScreenWarning", "Enable screen warning", "Turns the warning on/off for middle of the screen")
   AddCheckbox(category, settings, "enabledHI", "Enable Greetings", "Automatically sends your greeting message to party or raid chat")
   AddGreetingInput(category, layout, settings)
+  AddPositionControls(layout)
 end
 
 -- Init when addon loads

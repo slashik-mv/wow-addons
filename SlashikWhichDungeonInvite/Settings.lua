@@ -1,5 +1,7 @@
 DEFAULT_SETTINGS = {
   enabledScreenWarning = true,
+  warningX = 0,
+  warningY = 0,
   enabledHI = false,
   greetingMessage = "Greetings, travelers!"
 }

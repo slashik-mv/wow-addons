@@ -2,4 +2,7 @@
   <Frame name="SlashikWhichDungeonInviteGreetingInputTemplate" virtual="true">
     <Size x="600" y="88"/>
   </Frame>
+  <Frame name="SlashikWhichDungeonInvitePositionTemplate" virtual="true">
+    <Size x="600" y="72"/>
+  </Frame>
 </Ui>

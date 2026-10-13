@@ -8,12 +8,12 @@ local function OnSearchResultUpdated(resultID, newStatus, groupName)
 
   if newStatus ~= "inviteaccepted" then return end
 
-  local applicationInfo = C_LFGList.GetSearchResultInfo(resultID)
+  local applicationInfo = C_LFGList.GetSearchResultInfo(resultID) or {}
 
   local activityID = applicationInfo.activityID or (applicationInfo.activityIDs and applicationInfo.activityIDs[1])
   local activityName = activityID and C_LFGList.GetActivityFullName(activityID) or "Unknown activity"
 
-  printWarning(activityName .. ": " .. (groupName or applicationInfo.name or ""))
+  printWarning(activityName .. ": " .. (groupName or applicationInfo.name or ""), activityID)
 
   if getSetting().enabledHI == true then
     -- small delay so the group channel is fully available
