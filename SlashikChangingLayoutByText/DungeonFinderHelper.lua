@@ -8,8 +8,9 @@ local arrivalGeneration = 0
 local function GetDungeonKey()
     local inInstance, instanceType = IsInInstance()
     local _, _, difficultyID, _, _, _, _, instanceID = GetInstanceInfo()
+    -- Dungeon difficulties: Normal (1), Heroic (2), Timewalking (24).
     if not inInstance or instanceType ~= "party"
-        or (difficultyID ~= 1 and difficultyID ~= 2)
+        or (difficultyID ~= 1 and difficultyID ~= 2 and difficultyID ~= 24)
         or not IsInGroup(LE_PARTY_CATEGORY_INSTANCE) or IsInRaid()
         or not IsPartyLFG() then
         return nil
