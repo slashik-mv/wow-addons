@@ -1,8 +1,8 @@
-## Interface: 120100
+## Interface: 120105
 ## Title: Slashik Flying
 ## Notes: Compact Skyriding vigor, Second Wind, speed, and Whirling Surge display.
 ## Author: Slashik
-## Version: 1.4
+## Version: 1.5
 ## SavedVariables: SlashikFlyingDB
 ## IconTexture: Interface\AddOns\SlashikFlying\addonIcon
 
