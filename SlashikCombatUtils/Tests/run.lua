@@ -19,6 +19,14 @@ for _, method in ipairs({ "SetSize", "SetPoint", "SetFrameStrata", "SetClampedTo
     "SetWidth", "SetJustifyH", "SetAutoFocus", "SetNumeric", "SetMaxLetters", "ClearFocus", "SetAlpha" }) do
     methods[method] = function() end
 end
+function methods:SetStartPoint(point, relativeTo, x, y)
+    assert(type(relativeTo) == "table" and type(x) == "number" and type(y) == "number", "Line needs explicit relative frame and offsets")
+    self.startPoint = {point, relativeTo, x, y}
+end
+function methods:SetEndPoint(point, relativeTo, x, y)
+    assert(type(relativeTo) == "table" and type(x) == "number" and type(y) == "number", "Line needs explicit relative frame and offsets")
+    self.endPoint = {point, relativeTo, x, y}
+end
 function methods:SetScript(event, callback) self.scripts[event] = callback end
 function methods:RegisterEvent(event) self.events[event] = true end
 function methods:RegisterUnitEvent(event, unit) self.events[event] = unit end
@@ -35,7 +43,9 @@ function methods:SetChecked(on) self.checked = on end
 function methods:GetChecked() return self.checked end
 function methods:SetColorTexture(r, g, b) self.color = { r, g, b } end
 function methods:CreateFontString() return object() end
-function methods:CreateLine() return object() end
+function methods:CreateLine() error("Native Line rendering must not be used") end
+function methods:CreateTexture() return object() end
+function methods:SetRotation(angle) assert(type(angle) == "number"); self.rotation = angle end
 function methods:CreateAnimationGroup() return object() end
 function methods:CreateAnimation() return object() end
 function methods:Play() self.playing = true end

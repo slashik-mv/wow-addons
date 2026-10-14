@@ -1,6 +1,6 @@
 # SlashikCombatUtils
 
-Retail combat trackers with independent module switches. Version 1.0.3 targets
+Retail combat trackers with independent module switches. Version 1.0.4 targets
 interface 120105. This metadata target does not establish in-game compatibility testing.
 
 ## Bone Shield
@@ -64,7 +64,7 @@ Slashik addons' global helpers. Saved settings live in SlashikCombatUtilsDB.
 
 - SettingsHelper.lua: defaults, validation, shared messages.
 - ModuleSettingsHelper.lua: registry and independent enable/disable lifecycle.
-- TrackerFrameHelper.lua: native line graphics, animation, position and preview.
+- TrackerFrameHelper.lua: textured arc graphics, animation, position and preview.
 - Modules/BoneShield.lua: specialization, events, aura state and rendering.
 - AddonSettingsFrameHelper.lua: settings window and Retail settings entry.
 - SlashikCombatUtils.lua: startup and slash commands.

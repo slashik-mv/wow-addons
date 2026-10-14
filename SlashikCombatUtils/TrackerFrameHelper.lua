@@ -4,7 +4,7 @@ local colors = {
     missing = { 1, 0.08, 0.06 }, unknown = { 0.6, 0.65, 0.7 },
 }
 
--- Two tapered arcs, drawn with native lines so no external textures are needed.
+-- Two tapered arcs made from rotated solid textures; no native Line rendering.
 local function arc(parent, side)
     local frame = CreateFrame("Frame", nil, parent)
     frame:SetSize(210, 100)
@@ -13,14 +13,18 @@ local function arc(parent, side)
     for i = 1, 18 do
         local a = math.rad(28 + (i - 1) * 38 / 18)
         local b = math.rad(28 + i * 38 / 18)
-        local line = frame:CreateLine(nil, "ARTWORK")
-        line:SetThickness(2 + 3 * math.sin(i / 19 * math.pi))
-        line:SetStartPoint("CENTER", side * 67 * math.cos(a), -40 + 67 * math.sin(a))
-        line:SetEndPoint("CENTER", side * 67 * math.cos(b), -40 + 67 * math.sin(b))
+        local x1, y1 = side * 67 * math.cos(a), -40 + 67 * math.sin(a)
+        local x2, y2 = side * 67 * math.cos(b), -40 + 67 * math.sin(b)
+        local length = math.sqrt((x2 - x1)^2 + (y2 - y1)^2)
+        local line = frame:CreateTexture(nil, "ARTWORK")
+        line:SetColorTexture(1, 1, 1, 1)
+        line:SetSize(length + 1, 2 + 3 * math.sin(i / 19 * math.pi))
+        line:SetPoint("CENTER", frame, "CENTER", (x1 + x2) / 2, (y1 + y2) / 2)
+        line:SetRotation(math.pi / 2 + side * (a + b) / 2)
         frame.lines[#frame.lines + 1] = line
     end
     -- Move the arc's layout anchor instead of applying an AnimationGroup
-    -- translation to native Line regions. A continuous cosine wave has zero
+    -- translation to the arc regions. A continuous cosine wave has zero
     -- velocity at both turning points and no reverse-loop transform boundary.
     local animation = { playing = false, elapsed = 0 }
     function animation:IsPlaying() return self.playing end
@@ -120,7 +124,7 @@ function addon:CreateTrackerFrame(name, getSettings)
         self.timer:SetText(seconds)
         self.rightTimer:SetText(rightSeconds)
         for _, curve in ipairs(self.arcs) do
-            for _, line in ipairs(curve.lines) do line:SetColorTexture(unpack(color)) end
+            for _, line in ipairs(curve.lines) do line:SetColorTexture(color[1], color[2], color[3], 1) end
             if state == "missing" and bounce then
                 if not curve.bounce:IsPlaying() then curve.bounce:Play() end
             else
