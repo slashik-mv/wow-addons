@@ -1,8 +1,8 @@
-## Interface: 120100
+## Interface: 120105
 ## Title: Slashik Raid Break Time
 ## Notes: Shows a synced raid-break timer with a random illustration.
 ## Author: Slashik
-## Version: 2.36
+## Version: 2.37
 ## SavedVariables: SlashikRaidBreakTimeDB
 ## IconTexture: Interface\AddOns\SlashikRaidBreakTime\addonIcon
 
