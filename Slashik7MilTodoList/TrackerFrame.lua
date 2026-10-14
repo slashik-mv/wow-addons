@@ -198,7 +198,7 @@ function addon:RefreshWindow()
     if color then row.name:SetTextColor(color.r, color.g, color.b) end
     row.realm:SetText(character.realm)
     row.money:SetText(type(character.money) == "number"
-      and GetCoinTextureString(character.money)
+      and C_CurrencyInfo.GetCoinTextureString(character.money)
       or "Gold not recorded")
     row.up:SetEnabled(index > 1)
     row.down:SetEnabled(index < count)
@@ -213,11 +213,11 @@ function addon:RefreshWindow()
   frame.summary:SetText(string.format("%d characters  |  %d / %d weeklies completed", count, total, count * #self.tasks))
   local trackedMoney, _, hasWarbandMoney, characterMoney, warbandMoney = self:GetTrackedMoney()
   local progress = math.min(100, trackedMoney / GOLD_GOAL * 100)
-  frame.goldPanel.characters:SetText("Characters: " .. GetCoinTextureString(characterMoney))
+  frame.goldPanel.characters:SetText("Characters: " .. C_CurrencyInfo.GetCoinTextureString(characterMoney))
   frame.goldPanel.warband:SetText(hasWarbandMoney
-    and ("Warband Bank: " .. GetCoinTextureString(warbandMoney))
+    and ("Warband Bank: " .. C_CurrencyInfo.GetCoinTextureString(warbandMoney))
     or "Warband Bank: waiting for balance")
-  frame.goldPanel.total:SetText("Total: " .. GetCoinTextureString(trackedMoney))
+  frame.goldPanel.total:SetText("Total: " .. C_CurrencyInfo.GetCoinTextureString(trackedMoney))
   frame.goldBar:SetValue(math.min(trackedMoney, GOLD_GOAL))
   frame.goldBar:SetStatusBarColor(trackedMoney >= GOLD_GOAL and 0.2 or 0.95, trackedMoney >= GOLD_GOAL and 0.8 or 0.68, trackedMoney >= GOLD_GOAL and 0.25 or 0.05)
   for _, milestone in ipairs(frame.goldMilestones) do
