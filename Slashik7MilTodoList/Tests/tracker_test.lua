@@ -1,8 +1,12 @@
 -- Run from the addon directory with Lua 5.1 or newer.
 local addon = {}
 local now, seconds, guid, level = 1000, 100, "Player-A", 90
+local calendar = { year = 2026, month = 10, monthDay = 15 }
 GetServerTime = function() return now end
-C_DateAndTime = { GetSecondsUntilWeeklyReset = function() return seconds end }
+C_DateAndTime = {
+  GetSecondsUntilWeeklyReset = function() return seconds end,
+  GetCurrentCalendarTime = function() return calendar end,
+}
 local warbandMoney = 400000000
 C_Bank = { FetchDepositedMoney = function(bankType) assert(bankType == 2); return warbandMoney end }
 Enum = { BankType = { Account = 2 } }
@@ -55,6 +59,33 @@ warbandMoney = 450000000
 assert(addon:UpdateWarbandMoney())
 totalMoney = addon:GetTrackedMoney()
 assert(totalMoney == 723456789, "Warband Bank deposits and withdrawals update without losing account gold")
+addon:InitializeCashFlowBaseline()
+money = 151000000
+assert(addon:UpdateCharacterMoney())
+assert(addon:RecordCashFlow() == 1000000)
+money = 150500000
+assert(addon:UpdateCharacterMoney())
+assert(addon:RecordCashFlow() == -500000)
+local cashFlow = addon:GetCashFlowSummary()
+assert(cashFlow.daily.earnings == 1000000 and cashFlow.daily.spending == 500000)
+assert(cashFlow.total.earnings == 1000000 and cashFlow.total.spending == 500000)
+money, warbandMoney = 140500000, 460000000
+assert(addon:UpdateCharacterMoney() and addon:UpdateWarbandMoney())
+assert(addon:RecordCashFlow() == 0, "character-to-Warband transfers do not change cash flow")
+cashFlow = addon:GetCashFlowSummary()
+assert(cashFlow.daily.earnings == 1000000 and cashFlow.daily.spending == 500000)
+calendar = { year = 2026, month = 10, monthDay = 16 }
+cashFlow = addon:GetCashFlowSummary()
+assert(cashFlow.daily.earnings == 0 and cashFlow.daily.spending == 0, "daily cash flow rolls over")
+assert(cashFlow.monthly.earnings == 1000000 and cashFlow.monthly.spending == 500000)
+local balanceBeforeReset = addon:GetTrackedMoney()
+addon:ResetCashFlow()
+cashFlow = addon:GetCashFlowSummary()
+assert(cashFlow.daily.earnings == 0 and cashFlow.daily.spending == 0)
+assert(cashFlow.weekly.earnings == 0 and cashFlow.weekly.spending == 0)
+assert(cashFlow.monthly.earnings == 0 and cashFlow.monthly.spending == 0)
+assert(cashFlow.total.earnings == 0 and cashFlow.total.spending == 0)
+assert(cashFlow.lastTotal == balanceBeforeReset, "cash-flow reset keeps the current gold as its baseline")
 addon:MoveCharacter(guid, -1)
 assert(addon.db.order[1] == guid)
 addon:MoveCharacter(guid, -1)

@@ -12,6 +12,7 @@ addon.RegisterSettingsUI = function() end
 addon.CheckWeeklyReset = function() end
 addon.RegisterCharacter = function() end
 addon.UpdateWarbandMoney = function() return true end
+addon.InitializeCashFlowBaseline = function() end
 addon.ReconcileActiveTrackedQuests = function() return false end
 addon.HandleQuestTurnedIn = function() return false end
 addon.RefreshWindow = function() end

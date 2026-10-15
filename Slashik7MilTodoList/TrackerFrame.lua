@@ -21,6 +21,94 @@ local function Button(parent, label, width, height, callback)
   return button
 end
 
+local function CashFlowMoney(amount, signed)
+  local prefix = signed and (amount > 0 and "+" or amount < 0 and "-" or "") or ""
+  return prefix .. C_CurrencyInfo.GetCoinTextureString(math.abs(amount))
+end
+
+function addon:CreateCashFlowWindow()
+  local panel = CreateFrame("Frame", nil, self.window, "BackdropTemplate")
+  self.cashFlowWindow = panel
+  panel:SetSize(315, 570)
+  panel:SetPoint("TOPLEFT", self.window, "TOPRIGHT", 4, 0)
+  panel:SetFrameLevel(self.window:GetFrameLevel() + 5)
+  panel:SetBackdrop({
+    bgFile = "Interface\\Buttons\\WHITE8X8",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    edgeSize = 16,
+    insets = { left = 4, right = 4, top = 4, bottom = 4 },
+  })
+  panel:SetBackdropColor(0.035, 0.045, 0.075, 0.98)
+  panel:SetBackdropBorderColor(0.75, 0.58, 0.24)
+  Text(panel, "GameFontNormalLarge", 18, -18, 275, "Cash flow")
+  Text(panel, "GameFontDisableSmall", 18, -43, 275, "Characters and Warband Bank combined")
+  local reset = Button(panel, "Reset", 70, 22, function()
+    self:ResetCashFlow()
+    self:RefreshCashFlowWindow()
+  end)
+  reset:SetPoint("TOPRIGHT", -18, -16)
+  reset:SetScript("OnEnter", function(button)
+    GameTooltip:SetOwner(button, "ANCHOR_LEFT")
+    GameTooltip:SetText("Reset cash-flow statistics")
+    GameTooltip:AddLine("Clears earnings, spending, and net income only. Your gold and checklist are not changed.", 1, 1, 1, true)
+    GameTooltip:Show()
+  end)
+  reset:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+  panel.rows = {}
+  local periods = {
+    { id = "daily", label = "Today" },
+    { id = "weekly", label = "This week" },
+    { id = "monthly", label = "This month" },
+    { id = "total", label = "All time" },
+  }
+  for index, period in ipairs(periods) do
+    local section = CreateFrame("Frame", nil, panel)
+    section:SetSize(279, 112)
+    section:SetPoint("TOPLEFT", 18, -68 - (index - 1) * 118)
+    section.background = section:CreateTexture(nil, "BACKGROUND")
+    section.background:SetAllPoints()
+    section.background:SetColorTexture(0.11, 0.12, 0.16, index % 2 == 0 and 0.72 or 0.48)
+    Text(section, "GameFontNormal", 10, -8, 259, period.label)
+    Text(section, "GameFontHighlightSmall", 10, -34, 86, "Earnings")
+    Text(section, "GameFontHighlightSmall", 10, -58, 86, "Spending")
+    Text(section, "GameFontHighlightSmall", 10, -82, 86, "Net income")
+    local earnings = Text(section, "GameFontHighlightSmall", 96, -34, 171, "")
+    local spending = Text(section, "GameFontHighlightSmall", 96, -58, 171, "")
+    local net = Text(section, "GameFontHighlightSmall", 96, -82, 171, "")
+    earnings:SetJustifyH("RIGHT")
+    spending:SetJustifyH("RIGHT")
+    net:SetJustifyH("RIGHT")
+    earnings:SetTextColor(0.35, 1, 0.35)
+    spending:SetTextColor(1, 0.35, 0.35)
+    panel.rows[period.id] = { earnings = earnings, spending = spending, net = net }
+  end
+  return panel
+end
+
+function addon:SetCashFlowWindowShown(shown)
+  if not self.cashFlowWindow then self:CreateCashFlowWindow() end
+  self.cashFlowWindow:SetShown(shown)
+  if shown then self:RefreshCashFlowWindow() end
+end
+
+function addon:RefreshCashFlowWindow()
+  local panel = self.cashFlowWindow
+  if not panel then return end
+  local summary = self:GetCashFlowSummary()
+  for _, period in ipairs({ "daily", "weekly", "monthly", "total" }) do
+    local values, row = summary[period], panel.rows[period]
+    local earnings, spending = values.earnings or 0, values.spending or 0
+    local net = earnings - spending
+    row.earnings:SetText(CashFlowMoney(earnings))
+    row.spending:SetText(CashFlowMoney(spending))
+    row.net:SetText(CashFlowMoney(net, true))
+    if net > 0 then row.net:SetTextColor(0.35, 1, 0.35)
+    elseif net < 0 then row.net:SetTextColor(1, 0.35, 0.35)
+    else row.net:SetTextColor(1, 1, 1) end
+  end
+end
+
 function addon:CreateWindow()
   local frame = CreateFrame("Frame", "Slashik7MilTodoListFrame", UIParent, "BackdropTemplate")
   self.window = frame
@@ -135,11 +223,25 @@ function addon:CreateWindow()
   Text(frame, "GameFontDisableSmall", 22, -506, 900, "Automatic quest checks • Click to adjust manually • Progress resets every week • Use Up / Dn to reorder")
   local settings = Button(frame, "Settings", 110, 25, function() self:OpenSettings() end)
   settings:SetPoint("BOTTOMRIGHT", -22, 18)
+  local cashFlowToggle = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
+  cashFlowToggle:SetSize(24, 24)
+  cashFlowToggle:SetPoint("RIGHT", settings, "LEFT", -78, 0)
+  cashFlowToggle:SetChecked(self.db.settings.showCashFlow)
+  local cashFlowLabel = cashFlowToggle:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  cashFlowLabel:SetPoint("LEFT", cashFlowToggle, "RIGHT", 2, 0)
+  cashFlowLabel:SetText("Cash flow")
+  cashFlowToggle:SetScript("OnClick", function(button)
+    local shown = button:GetChecked() == true
+    self.db.settings.showCashFlow = shown
+    self:SetCashFlowWindowShown(shown)
+  end)
+  frame.cashFlowToggle = cashFlowToggle
   frame.resetLabel = Text(frame, "GameFontHighlightSmall", 22, -536, 740, "")
   frame:SetScript("OnShow", function()
     self:CheckWeeklyReset()
     self:ReconcileActiveTrackedQuests()
     self:RefreshWindow()
+    self:SetCashFlowWindowShown(self.db.settings.showCashFlow)
   end)
 end
 
@@ -235,6 +337,7 @@ function addon:RefreshWindow()
     )
   end
   frame.goldBar.text:SetText(string.format("%.1f%%", progress))
+  self:RefreshCashFlowWindow()
   local remaining = self.db.nextReset and math.max(0, self.db.nextReset - GetServerTime())
   frame.resetLabel:SetText(remaining and ("Weekly reset in " .. SecondsToTime(remaining)) or "Waiting for the server's weekly reset time...")
 end

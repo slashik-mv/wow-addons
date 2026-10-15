@@ -48,6 +48,20 @@ local function IsQuestOnLog(questID)
   return false
 end
 
+local function NewCashFlowPeriod(key)
+  return { key = key, earnings = 0, spending = 0 }
+end
+
+local function CashFlowPeriodKeys(nextReset)
+  local calendar = C_DateAndTime.GetCurrentCalendarTime()
+  local year, month, day = calendar.year, calendar.month, calendar.monthDay
+  return {
+    daily = string.format("%04d-%02d-%02d", year, month, day),
+    weekly = tostring(math.floor((nextReset or 0) / 3600)),
+    monthly = string.format("%04d-%02d", year, month),
+  }
+end
+
 -- Store the actual regional deadline, so offline characters reset together.
 function addon:CheckWeeklyReset()
   local now = GetServerTime()
@@ -92,7 +106,11 @@ function addon:UpdateCharacterMoney()
   local guid = UnitGUID("player")
   local character = guid and self.db.characters[guid]
   if not character or not GetMoney then return false end
+  local firstBalance = type(character.money) ~= "number"
   character.money = GetMoney()
+  if firstBalance and self.db.cashFlow and type(self.db.cashFlow.lastTotal) == "number" then
+    self.db.cashFlow.lastTotal = self.db.cashFlow.lastTotal + character.money
+  end
   return true
 end
 
@@ -102,7 +120,11 @@ function addon:UpdateWarbandMoney()
   end
   local money = C_Bank.FetchDepositedMoney(Enum.BankType.Account)
   if type(money) ~= "number" then return false end
+  local firstBalance = type(self.db.warbandMoney) ~= "number"
   self.db.warbandMoney = money
+  if firstBalance and self.db.cashFlow and type(self.db.cashFlow.lastTotal) == "number" then
+    self.db.cashFlow.lastTotal = self.db.cashFlow.lastTotal + money
+  end
   return true
 end
 
@@ -116,6 +138,70 @@ function addon:GetTrackedMoney()
   end
   local warbandMoney = type(self.db.warbandMoney) == "number" and self.db.warbandMoney or 0
   return total + warbandMoney, knownCharacters, self.db.warbandMoney ~= nil, total, warbandMoney
+end
+
+function addon:InitializeCashFlow()
+  local cashFlow = self.db.cashFlow
+  if type(cashFlow) ~= "table" then
+    cashFlow = {}
+    self.db.cashFlow = cashFlow
+  end
+  cashFlow.total = type(cashFlow.total) == "table" and cashFlow.total or NewCashFlowPeriod("total")
+  cashFlow.total.earnings = cashFlow.total.earnings or 0
+  cashFlow.total.spending = cashFlow.total.spending or 0
+
+  for period, key in pairs(CashFlowPeriodKeys(self.db.nextReset)) do
+    if type(cashFlow[period]) ~= "table" or cashFlow[period].key ~= key then
+      cashFlow[period] = NewCashFlowPeriod(key)
+    end
+  end
+  return cashFlow
+end
+
+function addon:InitializeCashFlowBaseline()
+  local cashFlow = self:InitializeCashFlow()
+  cashFlow.lastTotal = self:GetTrackedMoney()
+end
+
+function addon:RecordCashFlow()
+  local cashFlow = self:InitializeCashFlow()
+  local trackedMoney = self:GetTrackedMoney()
+  if type(cashFlow.lastTotal) ~= "number" then
+    cashFlow.lastTotal = trackedMoney
+    return 0
+  end
+
+  local change = trackedMoney - cashFlow.lastTotal
+  cashFlow.lastTotal = trackedMoney
+  if change == 0 then return 0 end
+
+  local field = change > 0 and "earnings" or "spending"
+  local amount = math.abs(change)
+  for _, period in ipairs({ "daily", "weekly", "monthly", "total" }) do
+    cashFlow[period][field] = (cashFlow[period][field] or 0) + amount
+  end
+  return change
+end
+
+function addon:GetCashFlowSummary()
+  return self:InitializeCashFlow()
+end
+
+function addon:ResetCashFlow()
+  self.db.cashFlow = nil
+  self:InitializeCashFlowBaseline()
+end
+
+function addon:QueueMoneyUpdate()
+  self.moneyUpdateGeneration = (self.moneyUpdateGeneration or 0) + 1
+  local generation = self.moneyUpdateGeneration
+  C_Timer.After(0.75, function()
+    if generation ~= self.moneyUpdateGeneration or not self.db then return end
+    self:UpdateCharacterMoney()
+    self:UpdateWarbandMoney()
+    self:RecordCashFlow()
+    if self.window and self.window:IsShown() then self:RefreshWindow() end
+  end)
 end
 
 function addon:MoveCharacter(guid, offset)

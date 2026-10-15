@@ -18,18 +18,15 @@ events:SetScript("OnEvent", function(_, event, argument, isReloadingUi)
     addon:RegisterCharacter()
     addon:ReconcileActiveTrackedQuests()
     addon:UpdateWarbandMoney()
+    addon:InitializeCashFlowBaseline()
     addon.resetTicker = C_Timer.NewTicker(30, function()
       addon:CheckWeeklyReset()
       if addon.window and addon.window:IsShown() then addon:RefreshWindow() end
     end)
   elseif event == "PLAYER_MONEY" and addon.db then
-    if addon:UpdateCharacterMoney() and addon.window and addon.window:IsShown() then
-      addon:RefreshWindow()
-    end
+    addon:QueueMoneyUpdate()
   elseif (event == "ACCOUNT_MONEY" or event == "BANKFRAME_OPENED") and addon.db then
-    if addon:UpdateWarbandMoney() and addon.window and addon.window:IsShown() then
-      addon:RefreshWindow()
-    end
+    addon:QueueMoneyUpdate()
   elseif event == "QUEST_TURNED_IN" and addon.db then
     if addon:HandleQuestTurnedIn(argument) and addon.window and addon.window:IsShown() then
       addon:RefreshWindow()

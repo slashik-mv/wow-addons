@@ -1,6 +1,6 @@
 local _, addon = ...
 
-addon.defaults = { showOnLogin = false, lockWindow = false }
+addon.defaults = { showOnLogin = false, lockWindow = false, showCashFlow = false }
 addon.tasks = {
   { id = "abundance", label = "Abundance\n20,000 points" },
   { id = "haranir", label = "Legends of\nthe Haranir" },
