@@ -36,6 +36,7 @@ function methods:SetScale(value) self.scale = value end
 function methods:GetEffectiveScale() return self.scale or 1 end
 function methods:GetCenter() return 500, 400 end
 function methods:SetText(value) self.text = value end
+function methods:HasFocus() return false end
 function methods:GetText() return self.text end
 function methods:EnableMouse(on) self.mouse = on end
 function methods:SetEnabled(on) self.enabled = on end
@@ -328,4 +329,23 @@ dndItem.auraDataUnit = "target"
 assert(module:ReadDeathAndDecayTimer() == "", "Do not track target buffs")
 BuffIconCooldownViewer = nil
 assert(module:ReadDeathAndDecayTimer() == "", "No source must clear the timer")
+local settingsWindow = SlashikCombatUtilsSettingsFrame
+addon:RegisterModule("testModule", { title = "Test module", description = "Test settings page", Enable = function() end, Disable = function() end })
+local builds = 0
+addon:RegisterModuleSettings("testModule", function(panel) builds = builds + 1; panel.testBuilt = true end)
+module:StartPreview("healthy")
+addon:SelectSettingsModule("testModule")
+assert(module.preview == nil, "Switching pages ends previous preview")
+assert(settingsWindow.pages.testModule:IsShown() and not settingsWindow.pages.boneShield:IsShown())
+assert(settingsWindow.pages.testModule.testBuilt)
+addon:SelectSettingsModule("boneShield")
+assert(settingsWindow.pages.boneShield:IsShown() and not settingsWindow.pages.testModule:IsShown())
+addon:SelectSettingsModule("testModule")
+assert(builds == 1, "Reuse page controls")
+addon:SelectSettingsModule("boneShield")
+addon:SetModuleEnabled("boneShield", false)
+settingsWindow.rows.boneShield.scripts.OnClick()
+assert(not addon:IsModuleEnabled("boneShield"), "Selection must not enable the module")
+assert(settingsWindow.pages.boneShield:IsShown(), "Disabled settings remain inspectable")
+addon:SetModuleEnabled("boneShield", true)
 print("PASS: " .. checks .. " aura cases; startup, lifecycle, visibility, previews, animation, settings and secret guards")

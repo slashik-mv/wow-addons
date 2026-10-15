@@ -1,6 +1,6 @@
 # SlashikCombatUtils
 
-Retail combat trackers with independent module switches. Version 1.0.4 targets
+Retail combat trackers with independent module switches. Version 1.0.5 targets
 interface 120105. This metadata target does not establish in-game compatibility testing.
 
 ## Bone Shield
@@ -71,8 +71,10 @@ Slashik addons' global helpers. Saved settings live in SlashikCombatUtilsDB.
 
 New trackers register a unique key with `addon:RegisterModule(key, module)` and
 implement `Enable` and `Disable`. Add their file to the TOC before settings/startup.
-The settings window enumerates registered master switches; adjust its layout and
-add a module-specific section when introducing the next tracker.
+The settings window lists registered modules in its left sidebar. Register a
+right-hand settings page with `addon:RegisterModuleSettings(key, builder)` before
+the window is first opened; the builder receives its page frame. Pages are built
+once and reused when selected. Selecting a module does not enable it.
 
 ## Verification
 
@@ -100,3 +102,11 @@ the player buff timer, not the spell cooldown or an estimated ground duration.
 Absent or unavailable buff timers leave the right side blank. Preview shows 8.
 The helper lives in Modules/DeathAndDecay.lua and follows the Blood-only module
 switch, positioning and visibility settings. `/scu debug` reports its source.
+
+## Module settings layout
+
+The left sidebar lists modules with separate enable/disable checkboxes. Select a
+module name to display its settings on the right. Disabled modules remain
+selectable, with their controls dimmed until enabled. Switching pages ends the
+previous module's preview; closing the window ends all previews. The window keeps
+the Blizzard-style background, movable frame and Escape-to-close behavior.
