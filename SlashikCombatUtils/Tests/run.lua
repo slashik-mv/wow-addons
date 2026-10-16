@@ -35,6 +35,11 @@ function methods:UnregisterAllEvents() self.events = {} end
 function methods:SetScale(value) self.scale = value end
 function methods:GetEffectiveScale() return self.scale or 1 end
 function methods:GetCenter() return 500, 400 end
+function methods:SetHeight(value) self.height = value end
+function methods:GetStringHeight()
+    local _, newlines = (self.text or ""):gsub("\n", "")
+    return (newlines + 1) * 14
+end
 function methods:SetTexture(value) self.texture = value end
 function methods:SetText(value) self.text = value end
 function methods:HasFocus() return false end

@@ -1,7 +1,7 @@
 # SlashikCombatUtils
 
-Retail combat trackers with independent module switches. Version 1.0.6 targets
-interface 120105. This metadata target does not establish in-game compatibility testing.
+Retail combat trackers with independent module switches. Version 1.7 targets
+interface 120105. Releases use two-part versions (1.6, 1.7, and so on). This metadata target does not establish in-game compatibility testing.
 
 ## Bone Shield
 
@@ -127,7 +127,8 @@ satisfies its category. Banks do not count, and this checks stock, not active bu
 
 The catalog uses item IDs 241321, 241324, 241322, 241326, 241304, 241308, 241288,
 243734, 243738, 242275 and 255847.
-A movable, dismissible window names missing categories and their selected items.
+A compact, movable, dismissible window names missing categories and their selected
+items. Its height adjusts to the missing list, including wrapped text.
 Checks run after login/zone changes, bag updates, selection changes, and enabling
 the module. Ready checks, combat ending, and key completion/reset do not trigger checks.
 **Check now** also runs a check. Combat immediately hides the reminder; checks and

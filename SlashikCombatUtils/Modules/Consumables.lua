@@ -94,7 +94,7 @@ end
 function module:ShowWarning(missing)
     if not self.warning then
         local frame = CreateFrame("Frame", "SlashikCombatUtilsConsumablesWarning", UIParent, "BasicFrameTemplateWithInset")
-        frame:SetSize(520, 480)
+        frame:SetSize(420, 150)
         frame:SetPoint("CENTER")
         frame:SetFrameStrata("DIALOG")
         frame:SetMovable(true)
@@ -106,8 +106,8 @@ function module:ShowWarning(missing)
         frame.TitleText:SetText("Missing Consumables")
         table.insert(UISpecialFrames, "SlashikCombatUtilsConsumablesWarning")
         frame.text = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        frame.text:SetPoint("TOPLEFT", 24, -44)
-        frame.text:SetWidth(472)
+        frame.text:SetPoint("TOPLEFT", 18, -40)
+        frame.text:SetWidth(384)
         frame.text:SetJustifyH("LEFT")
         local dismiss = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
         dismiss:SetSize(140, 26)
@@ -122,7 +122,10 @@ function module:ShowWarning(missing)
         for _, name in ipairs(group.choices) do lines[#lines + 1] = "  " .. name end
         lines[#lines + 1] = ""
     end
+    -- Remove trailing blank space and measure wrapped text before sizing the window.
+    lines[#lines] = nil
     self.warning.text:SetText(table.concat(lines, "\n"))
+    self.warning:SetHeight(math.max(150, math.ceil(self.warning.text:GetStringHeight()) + 100))
     self.warning:Show()
 end
 
