@@ -13,6 +13,8 @@ addon:RegisterModuleSettings("consumables", function(panel)
     local content = CreateFrame("Frame", nil, scroll)
     content:SetSize(510, 1)
     scroll:SetScrollChild(content)
+    content:EnableMouse(true)
+    module:EnableItemLinks(content)
     local y = 0
     for _, group in ipairs(module.groups) do
         local heading = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -39,7 +41,7 @@ addon:RegisterModuleSettings("consumables", function(panel)
             check.label:SetPoint("LEFT", check.icon, "RIGHT", 7, 0)
             check.label:SetWidth(340)
             check.label:SetJustifyH("LEFT")
-            check.label:SetText(item.name .. "\n|cffaaaaaa" .. item.effect .. "|r")
+            check.label:SetText("|cffffffff|Hitem:" .. id .. "|h[" .. item.name .. "]|h|r\n|cffaaaaaa" .. item.effect .. "|r")
             check.module = "consumables"
             check.read = function() return module:GetSelections()[id] == true end
             addon:RegisterSettingsControl(check)

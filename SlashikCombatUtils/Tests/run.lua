@@ -16,7 +16,7 @@ for _, method in ipairs({ "SetSize", "SetPoint", "SetFrameStrata", "SetClampedTo
     "RegisterForDrag", "SetFont", "SetTextColor", "SetAllPoints", "SetThickness", "SetStartPoint",
     "SetEndPoint", "SetLooping", "SetOffset", "SetDuration", "SetSmoothing", "SetBackdrop",
     "SetBackdropColor", "SetBackdropBorderColor", "ClearAllPoints", "StartMoving", "StopMovingOrSizing",
-    "SetWidth", "SetHeight", "SetScrollChild", "SetJustifyH", "SetAutoFocus", "SetNumeric", "SetMaxLetters", "ClearFocus", "SetAlpha" }) do
+    "SetHyperlinksEnabled", "SetWidth", "SetHeight", "SetScrollChild", "SetJustifyH", "SetAutoFocus", "SetNumeric", "SetMaxLetters", "ClearFocus", "SetAlpha" }) do
     methods[method] = function() end
 end
 function methods:SetStartPoint(point, relativeTo, x, y)
@@ -73,6 +73,7 @@ function CreateFrame(_, name)
     return f
 end
 UIParent, UISpecialFrames, SlashCmdList = object(), {}, {}
+GameTooltip = object()
 STANDARD_TEXT_FONT = "test-font"
 function InCombatLockdown() return combat end
 function UnitClass() return "Death Knight", class end
@@ -592,3 +593,24 @@ local cleanOrder = addon:GetModuleDisplayOrder()
 assert(cleanOrder[1] == "consumables" and cleanOrder[2] == "boneShield" and #cleanOrder == 3)
 assert(addon.moduleOrder[1] == "boneShield", "Display ordering does not change startup order")
 print("PASS: saved module ordering, arrows, boundaries, stale entries and combat guard")
+
+local modified, clicked, searched, inspected = false, nil, nil, nil
+function IsModifiedClick() return modified end
+function HandleModifiedItemClick(text) clicked = text end
+function SetItemRef(link) inspected = link end
+C_Item.GetItemNameByID = function() return "Localized potion name" end
+AuctionHouseFrame = {
+    IsShown = function() return true end,
+    SetSearchText = function(_, text) searched = text; return true end,
+}
+local linkText = "|Hitem:241308|h[Light's Potential]|h"
+consumables:ClickItem("item:241308", linkText, "LeftButton")
+assert(searched == "Localized potion name" and not inspected)
+modified = true
+consumables:ClickItem("item:241308", linkText, "LeftButton")
+assert(clicked == linkText)
+modified = false
+AuctionHouseFrame = nil
+consumables:ClickItem("item:241308", linkText, "LeftButton")
+assert(inspected == "item:241308")
+print("PASS: item links fill native Auction House search, forward modified clicks and open item tooltips")

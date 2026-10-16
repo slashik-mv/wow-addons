@@ -66,7 +66,7 @@ function module:GetMissing()
         for _, item in ipairs(group.items) do
             if selected[item.id] == true then
                 local minimum, total = self:GetMinimum(item.id), 0
-                choices[#choices + 1] = item.name .. " (minimum " .. minimum .. ")"
+                choices[#choices + 1] = "|cffffffff|Hitem:" .. item.id .. "|h[" .. item.name .. "]|h|r (minimum " .. minimum .. ")"
                 -- Bags only: bank, reagent bank, account bank and charges excluded.
                 -- Keep the original ID as the saved selection key; accept known quality variants.
                 for _, id in ipairs(item.variants or { item.id }) do
@@ -91,6 +91,42 @@ function module:HideWarning()
     if self.warning then self.warning:Hide() end
 end
 
+function module:ClickItem(link, text, button)
+    local id = tonumber(link:match("^item:(%d+)"))
+    if not id then return end
+    local itemName
+    for _, group in ipairs(self.groups) do
+        for _, item in ipairs(group.items) do
+            if item.id == id then itemName = item.name end
+        end
+    end
+    if not itemName then return end
+    if IsModifiedClick() then
+        HandleModifiedItemClick(text)
+        return
+    end
+    if button == "LeftButton" and AuctionHouseFrame and AuctionHouseFrame:IsShown() then
+        local name = C_Item.GetItemNameByID(id) or itemName
+        if AuctionHouseFrame:SetSearchText(name) then return end
+    end
+    SetItemRef(link, text, button, self.warning)
+end
+
+function module:EnableItemLinks(frame)
+    frame:SetHyperlinksEnabled(true)
+    frame:SetScript("OnHyperlinkClick", function(_, link, text, button)
+        self:ClickItem(link, text, button)
+    end)
+    frame:SetScript("OnHyperlinkEnter", function(owner, link)
+        if not link:match("^item:%d+") then return end
+        GameTooltip:SetOwner(owner, "ANCHOR_CURSOR")
+        GameTooltip:SetHyperlink(link)
+        GameTooltip:Show()
+    end)
+    frame:SetScript("OnHyperlinkLeave", function() GameTooltip:Hide() end)
+    frame:SetScript("OnHide", function() GameTooltip:Hide() end)
+end
+
 function module:ShowWarning(missing)
     if not self.warning then
         local frame = CreateFrame("Frame", "SlashikCombatUtilsConsumablesWarning", UIParent, "BasicFrameTemplateWithInset")
@@ -100,6 +136,7 @@ function module:ShowWarning(missing)
         frame:SetMovable(true)
         frame:SetClampedToScreen(true)
         frame:EnableMouse(true)
+        self:EnableItemLinks(frame)
         frame:RegisterForDrag("LeftButton")
         frame:SetScript("OnDragStart", frame.StartMoving)
         frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
