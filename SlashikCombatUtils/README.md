@@ -1,6 +1,6 @@
 # SlashikCombatUtils
 
-Retail combat trackers with independent module switches. Version 1.0.5 targets
+Retail combat trackers with independent module switches. Version 1.0.6 targets
 interface 120105. This metadata target does not establish in-game compatibility testing.
 
 ## Bone Shield
@@ -110,3 +110,49 @@ module name to display its settings on the right. Disabled modules remain
 selectable, with their controls dimmed until enabled. Switching pages ends the
 previous module's preview; closing the window ends all previews. The window keeps
 the Blizzard-style background, movable frame and Escape-to-close behavior.
+
+## Check Consumables
+
+Available to every class; disabled by default. Open `/scu`, enable **Check Consumables**
+with its sidebar checkbox, select its name,
+and tick the consumables you accept in each category. No items are selected by
+default. Categories without selections are skipped; any selected item meeting its minimum in bags
+satisfies its category. Banks do not count, and this checks stock, not active buffs.
+
+- **Flasks:** Thalassian Resistance, Blood Knights, Magisters, Shattered Sun.
+- **Health Potions:** Silvermoon Health Potion.
+- **Battle Potions:** Light's Potential, Potion of Recklessness.
+- **Enchanting:** Thalassian Phoenix Oil, Smuggler's Enchanted Edge.
+- **Food:** Royal Roast, Impossibly Royal Roast.
+
+The catalog uses item IDs 241321, 241324, 241322, 241326, 241304, 241308, 241288,
+243734, 243738, 242275 and 255847.
+A movable, dismissible window names missing categories and their selected items.
+Checks run after login/zone changes, bag updates, selection changes, and enabling
+the module. Ready checks, combat ending, and key completion/reset do not trigger checks.
+**Check now** also runs a check. Combat immediately hides the reminder; checks and
+reminders stay paused throughout an active Mythic+ run, including between pulls
+and after reloading inside a key.
+
+Dismissing a reminder silences that same missing list until the next zone
+change, selection change, or stock change. Disable the module with its sidebar
+checkbox to stop its events and timers while keeping selections.
+
+Run `lua Tests/run.lua` for bag selection and suppression checks. In game,
+verify selection persistence after reload, purchasing/using selected items,
+dismissing the window, entering combat, and starting/completing/resetting a key.
+
+Known quality variants also count under the same selection: Magisters 241323,
+Light's Potential 241309, and Thalassian Phoenix Oil 243733.
+
+Every flask, potion and Enchanting selection accepts both crafting qualities
+(small and big diamond) under the same checkbox. Food remains individually selectable.
+
+Each item has a **Minimum** quantity (default 1, whole numbers 1–9999).
+Press Enter or leave the field to save. Counts from both crafting qualities add
+together. A category is satisfied when any selected item meets its own minimum;
+different selected items do not combine their counts. The reminder lists the
+required minimum beside each acceptable item.
+
+Use the up/down arrows beside module names to reorder the sidebar. The order is
+saved across reloads; moving a module does not enable it or change the selected page.

@@ -16,7 +16,7 @@ for _, method in ipairs({ "SetSize", "SetPoint", "SetFrameStrata", "SetClampedTo
     "RegisterForDrag", "SetFont", "SetTextColor", "SetAllPoints", "SetThickness", "SetStartPoint",
     "SetEndPoint", "SetLooping", "SetOffset", "SetDuration", "SetSmoothing", "SetBackdrop",
     "SetBackdropColor", "SetBackdropBorderColor", "ClearAllPoints", "StartMoving", "StopMovingOrSizing",
-    "SetWidth", "SetJustifyH", "SetAutoFocus", "SetNumeric", "SetMaxLetters", "ClearFocus", "SetAlpha" }) do
+    "SetWidth", "SetHeight", "SetScrollChild", "SetJustifyH", "SetAutoFocus", "SetNumeric", "SetMaxLetters", "ClearFocus", "SetAlpha" }) do
     methods[method] = function() end
 end
 function methods:SetStartPoint(point, relativeTo, x, y)
@@ -35,6 +35,7 @@ function methods:UnregisterAllEvents() self.events = {} end
 function methods:SetScale(value) self.scale = value end
 function methods:GetEffectiveScale() return self.scale or 1 end
 function methods:GetCenter() return 500, 400 end
+function methods:SetTexture(value) self.texture = value end
 function methods:SetText(value) self.text = value end
 function methods:HasFocus() return false end
 function methods:GetText() return self.text end
@@ -85,8 +86,19 @@ C_UnitAuras = { GetPlayerAuraBySpellID = function(id)
 end }
 Settings = { RegisterCanvasLayoutCategory = function(panel) return panel end, RegisterAddOnCategory = function() end }
 
+local activeKey, bagCounts, bagQueries = false, {}, 0
+C_ChallengeMode = { IsChallengeModeActive = function() return activeKey end }
+C_Item = { GetItemIconByID = function(id) return id + 100000 end, GetItemCount = function(id, bank, uses, reagent, account)
+    assert(not bank and not uses and not reagent and not account, "Only bag stock counts")
+    bagQueries = bagQueries + 1
+    return bagCounts[id] or 0
+end }
+C_Timer = { NewTimer = function(_, callback)
+    return { callback = callback, Cancel = function(self) self.cancelled = true end }
+end }
+
 for _, file in ipairs({ "SettingsHelper.lua", "ModuleSettingsHelper.lua", "TrackerFrameHelper.lua",
-    "Modules/BoneShield.lua", "Modules/DeathAndDecay.lua", "AddonSettingsFrameHelper.lua", "SlashikCombatUtils.lua" }) do
+    "Modules/BoneShield.lua", "Modules/DeathAndDecay.lua", "Modules/Consumables.lua", "AddonSettingsFrameHelper.lua", "ConsumablesSettingsHelper.lua", "SlashikCombatUtils.lua" }) do
     assert(loadfile(file))("SlashikCombatUtils", addon)
 end
 local startup = frames[#frames]
@@ -349,3 +361,229 @@ assert(not addon:IsModuleEnabled("boneShield"), "Selection must not enable the m
 assert(settingsWindow.pages.boneShield:IsShown(), "Disabled settings remain inspectable")
 addon:SetModuleEnabled("boneShield", true)
 print("PASS: " .. checks .. " aura cases; startup, lifecycle, visibility, previews, animation, settings and secret guards")
+
+
+-- Consumables: categories are OR groups and empty categories are ignored.
+combat = false
+local consumables = addon.modules.consumables
+assert(not consumables.enabled and not consumables.timer, "Consumables must start disabled")
+assert(not addon:IsModuleEnabled("consumables"))
+addon:SetModuleEnabled("consumables", true)
+assert(addon:GetSettings().modules.consumables == true, "Saved opt-in survives defaults")
+assert(consumables.enabled)
+local function flush()
+    local timer = consumables.timer
+    if timer and not timer.cancelled then timer.callback() end
+end
+flush()
+assert(not consumables.warning)
+consumables:SetSelected(241321, true)
+consumables:SetSelected(241324, true)
+consumables:SetSelected(241304, true)
+flush()
+assert(consumables.warning:IsShown())
+local missing = consumables:GetMissing()
+assert(#missing == 2 and #missing[1].choices == 2)
+assert(consumables.warning.text.text:find("Silvermoon Health Potion", 1, true))
+bagCounts[241326] = 5
+assert(#consumables:GetMissing() == 2, "Unselected flasks must not satisfy selection")
+bagCounts[241324] = 1
+missing = consumables:GetMissing()
+assert(#missing == 1 and missing[1].title == "Health Potions")
+bagCounts[241304] = 2
+consumables:Check()
+assert(not consumables.warning:IsShown())
+bagCounts[241304] = nil
+consumables:OnEvent("BAG_UPDATE_DELAYED"); flush()
+assert(consumables.warning:IsShown())
+consumables.warning:Hide()
+consumables:OnEvent("BAG_UPDATE_DELAYED"); flush()
+assert(not consumables.warning:IsShown(), "Dismissed list must not spam on every bag event")
+consumables:Check(true)
+assert(consumables.warning:IsShown(), "Manual check reopens dismissed reminder")
+consumables:Schedule()
+local pending = consumables.timer
+local before = bagQueries
+combat = true
+consumables:OnEvent("PLAYER_REGEN_DISABLED")
+assert(pending.cancelled and not consumables.warning:IsShown())
+consumables:Check(true)
+assert(bagQueries == before, "No bag reads in combat")
+combat = false
+consumables:OnEvent("PLAYER_REGEN_ENABLED"); flush()
+-- Start event protects the countdown even before the API reports an active key.
+consumables:OnEvent("CHALLENGE_MODE_START")
+before = bagQueries
+consumables:Check(true)
+consumables:OnEvent("BAG_UPDATE_DELAYED"); flush()
+consumables:OnEvent("PLAYER_REGEN_ENABLED"); flush()
+assert(bagQueries == before and not consumables.warning:IsShown())
+activeKey = true
+consumables:OnEvent("PLAYER_ENTERING_WORLD"); flush()
+consumables:Check(true)
+assert(bagQueries == before, "Reload/zone inside an active key stays suppressed")
+consumables:Disable(); consumables:Enable(); flush()
+assert(bagQueries == before, "Enabling inside a key stays suppressed")
+activeKey = false
+before = bagQueries
+consumables:OnEvent("CHALLENGE_MODE_COMPLETED"); flush()
+assert(bagQueries == before and not consumables.warning:IsShown(), "Key completion does not check")
+consumables:OnEvent("READY_CHECK"); flush()
+consumables:OnEvent("PLAYER_REGEN_ENABLED"); flush()
+assert(bagQueries == before, "Ready checks and combat end do not check")
+assert(not consumables.events.events.READY_CHECK and not consumables.events.events.PLAYER_REGEN_ENABLED)
+consumables:OnEvent("BAG_UPDATE_DELAYED"); flush()
+assert(consumables.warning:IsShown(), "Bag updates still check after a key")
+consumables:OnEvent("CHALLENGE_MODE_START")
+before = bagQueries
+consumables:OnEvent("CHALLENGE_MODE_RESET"); flush()
+assert(not consumables:IsSuppressed())
+assert(bagQueries == before and not consumables.warning:IsShown(), "Key reset does not check")
+bagCounts[241304] = SECRET
+consumables:Check()
+assert(not consumables.warning:IsShown(), "Unknown stock must not become a false missing alert")
+bagCounts[241304] = nil
+consumables:Schedule()
+pending = consumables.timer
+addon:SetModuleEnabled("consumables", false)
+assert(pending.cancelled and not next(consumables.events.events))
+before = bagQueries
+pending.callback()
+assert(bagQueries == before and not consumables.warning:IsShown())
+assert(consumables:GetSelections()[241304], "Disabling preserves selections")
+addon:SelectSettingsModule("consumables")
+assert(settingsWindow.pages.consumables:IsShown())
+assert(not settingsWindow.pages.boneShield:IsShown())
+local itemChecks = 0
+for _, frame in ipairs(frames) do
+    if frame.module == "consumables" and frame.read then
+        itemChecks = itemChecks + 1
+        assert(not frame.enabled, "Disabled module controls are dimmed and disabled")
+    end
+end
+assert(itemChecks == 11)
+addon:SetModuleEnabled("consumables", true)
+consumables:SetSelected(241308, true)
+consumables:SetSelected(241288, true)
+bagCounts[241288], bagCounts[241304] = 1, 1
+assert(#consumables:GetMissing() == 0, "Any selected battle potion satisfies its category")
+consumables:SetSelected(241304, false)
+bagCounts[241304] = nil
+assert(#consumables:GetMissing() == 0, "Deselected category is ignored")
+print("PASS: consumables selection, bags-only counts, dismissal, combat/key suppression, lifecycle and settings")
+
+consumables:SetSelected(243734, true)
+consumables:SetSelected(243738, true)
+consumables:SetSelected(242275, true)
+consumables:SetSelected(255847, true)
+missing = consumables:GetMissing()
+assert(#missing == 2 and missing[1].title == "Enchanting" and missing[2].title == "Food")
+bagCounts[243738] = 1
+missing = consumables:GetMissing()
+assert(#missing == 1 and missing[1].title == "Food")
+bagCounts[255847] = 1
+assert(#consumables:GetMissing() == 0)
+bagCounts[243738], bagCounts[255847] = nil, nil
+bagCounts[243734], bagCounts[242275] = 1, 1
+assert(#consumables:GetMissing() == 0, "Either selected oil or food satisfies its own category")
+print("PASS: Enchanting and Food alternatives")
+
+-- Exact quality variants from the player's bag screenshots.
+SlashikCombatUtilsDB.settings.consumables.selected = {
+    [241322] = true, [241308] = true, [243734] = true,
+}
+bagCounts = {}
+assert(#consumables:GetMissing() == 3)
+consumables:Check(true)
+assert(consumables.warning:IsShown())
+bagCounts = { [241323] = 3, [241309] = 27, [243733] = 38 }
+consumables:OnEvent("BAG_UPDATE_DELAYED"); flush()
+assert(#consumables:GetMissing() == 0 and not consumables.warning:IsShown(), "Owned quality variants clear warning")
+bagCounts[241323] = nil
+missing = consumables:GetMissing()
+assert(#missing == 1 and missing[1].title == "Flasks")
+bagCounts = { [241322] = 1, [241308] = 1, [243734] = 1 }
+assert(#consumables:GetMissing() == 0, "Original quality IDs remain supported")
+print("PASS: screenshot quality variants and existing saved selections")
+
+-- Each ranked consumable accepts either quality independently under one saved checkbox.
+local ranked = 0
+for _, group in ipairs(consumables.groups) do
+    for _, item in ipairs(group.items) do
+        if item.variants then
+            ranked = ranked + 1
+            assert(#item.variants == 2)
+            SlashikCombatUtilsDB.settings.consumables.selected = { [item.id] = true }
+            bagCounts = {}
+            assert(#consumables:GetMissing() == 1)
+            for _, variant in ipairs(item.variants) do
+                bagCounts = { [variant] = 1 }
+                assert(#consumables:GetMissing() == 0, "Quality variant missing: " .. variant)
+            end
+        end
+    end
+end
+assert(ranked == 9, "All flasks, potions and weapon consumables have both qualities")
+print("PASS: both quality variants for all nine ranked consumables")
+
+SlashikCombatUtilsDB.settings.consumables.selected = { [241308] = true }
+assert(consumables:GetMinimum(241308) == 1)
+consumables:SetMinimum(241308, "20")
+bagCounts = { [241308] = 9, [241309] = 10 }
+assert(#consumables:GetMissing() == 1)
+bagCounts[241309] = 11
+assert(#consumables:GetMissing() == 0, "Combine qualities at the exact minimum")
+consumables:SetMinimum(241308, "21")
+assert(consumables:GetMissing()[1].choices[1]:find("minimum 21", 1, true))
+for _, invalid in ipairs({ "", "abc", 0, -1, 1.5, 10000 }) do
+    consumables:SetMinimum(241308, invalid)
+    assert(consumables:GetMinimum(241308) == 21)
+end
+consumables:SetSelected(241288, true)
+consumables:SetMinimum(241288, 5)
+bagCounts = { [241308] = 20, [241288] = 4 }
+assert(#consumables:GetMissing() == 1, "Different items cannot pool quantities")
+bagCounts[241288] = 5
+assert(#consumables:GetMissing() == 0, "Any selected item meeting its minimum suffices")
+combat = true
+consumables:SetMinimum(241288, 10)
+assert(consumables:GetMinimum(241288) == 5)
+combat = false
+local boxes = 0
+for _, frame in ipairs(frames) do
+    if frame.module == "consumables" and frame.itemID then
+        boxes = boxes + 1
+        if frame.itemID == 241308 then
+            frame:SetText("30")
+            frame.scripts.OnEnterPressed(frame)
+            assert(consumables:GetMinimum(241308) == 30)
+            frame:SetText("0")
+            frame.scripts.OnEditFocusLost(frame)
+            assert(frame:GetText() == "30")
+        end
+    end
+end
+assert(boxes == 11)
+consumables:Disable(); consumables:Enable()
+assert(consumables:GetMinimum(241308) == 30, "Minimums persist through module toggles")
+print("PASS: per-item minimums, mixed qualities, validation, combat guard and quantity controls")
+
+local selectedPage = settingsWindow.selectedModule
+local enabledBefore = addon:IsModuleEnabled("consumables")
+settingsWindow.rows.consumables.up.scripts.OnClick()
+assert(addon:GetModuleDisplayOrder()[1] == "consumables")
+assert(addon:GetSettings().moduleOrder[1] == "consumables", "Order is saved")
+assert(not settingsWindow.rows.consumables.up.enabled)
+assert(settingsWindow.selectedModule == selectedPage)
+assert(addon:IsModuleEnabled("consumables") == enabledBefore)
+combat = true
+addon:MoveModule("consumables", 1)
+assert(addon:GetModuleDisplayOrder()[1] == "consumables")
+combat = false
+settingsWindow.rows.consumables.down.scripts.OnClick()
+assert(addon:GetModuleDisplayOrder()[1] == "boneShield")
+addon:GetSettings().moduleOrder = { "unknown", "consumables", "consumables" }
+local cleanOrder = addon:GetModuleDisplayOrder()
+assert(cleanOrder[1] == "consumables" and cleanOrder[2] == "boneShield" and #cleanOrder == 3)
+assert(addon.moduleOrder[1] == "boneShield", "Display ordering does not change startup order")
+print("PASS: saved module ordering, arrows, boundaries, stale entries and combat guard")

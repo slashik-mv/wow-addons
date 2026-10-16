@@ -11,7 +11,11 @@ function addon:GetSettings()
     if type(db.settings) ~= "table" then db.settings = {} end
     local settings = db.settings
     if type(settings.modules) ~= "table" then settings.modules = {} end
+    if settings.modules.consumables == nil then settings.modules.consumables = false end
     if type(settings.boneShield) ~= "table" then settings.boneShield = {} end
+    if type(settings.consumables) ~= "table" then settings.consumables = {} end
+    if type(settings.consumables.selected) ~= "table" then settings.consumables.selected = {} end
+    if type(settings.consumables.minimums) ~= "table" then settings.consumables.minimums = {} end
     local bone = settings.boneShield
     bone.combatOnly = bone.combatOnly == true
     bone.showDeathAndDecay = bone.showDeathAndDecay ~= false

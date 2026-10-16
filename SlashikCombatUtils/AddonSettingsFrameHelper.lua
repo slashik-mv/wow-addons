@@ -2,12 +2,28 @@ local _, addon = ...
 local window, page
 local controls, builders = {}, {}
 
+function addon:RegisterSettingsControl(control)
+    controls[#controls + 1] = control
+end
+
 function addon:RegisterModuleSettings(key, builder)
     builders[key] = builder
 end
 
 function addon:RefreshSettingsWindow()
     if not window then return end
+    local order = self:GetModuleDisplayOrder()
+    for index, key in ipairs(order) do
+        local row, check = window.rows[key], window.checks[key]
+        if row then
+            row:ClearAllPoints()
+            row:SetPoint("TOPLEFT", 28, -85 - (index - 1) * 40)
+            check:ClearAllPoints()
+            check:SetPoint("TOPLEFT", 177, -90 - (index - 1) * 40)
+            row.up:SetEnabled(index > 1)
+            row.down:SetEnabled(index < #order)
+        end
+    end
     for key, check in pairs(window.checks) do
         check:SetChecked(self:IsModuleEnabled(key))
         window.rows[key].selected:SetShown(window.selectedModule == key)
@@ -174,17 +190,17 @@ function addon:ShowSettings()
         hint:SetPoint("TOPLEFT", 14, -43)
         hint:SetWidth(185)
         hint:SetJustifyH("LEFT")
-        hint:SetText("Select a name to view settings.\nCheckboxes enable each module.")
-        for index, key in ipairs(self.moduleOrder) do
+        hint:SetText("Select a name to view settings.\nCheckboxes enable. Arrows reorder.")
+        for index, key in ipairs(self:GetModuleDisplayOrder()) do
             local row = CreateFrame("Button", nil, sidebar)
-            row:SetSize(167, 36)
-            row:SetPoint("TOPLEFT", 6, -85 - (index - 1) * 40)
+            row:SetSize(145, 36)
+            row:SetPoint("TOPLEFT", 28, -85 - (index - 1) * 40)
             row.selected = row:CreateTexture(nil, "BACKGROUND")
             row.selected:SetAllPoints()
             row.selected:SetColorTexture(0.65, 0.48, 0.15, 0.28)
             local title = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
             title:SetPoint("LEFT", 8, 0)
-            title:SetWidth(150)
+            title:SetWidth(129)
             title:SetJustifyH("LEFT")
             title:SetText(self.modules[key].title)
             row:SetScript("OnClick", function() addon:SelectSettingsModule(key) end)
@@ -195,6 +211,14 @@ function addon:ShowSettings()
                 addon:SetModuleEnabled(key, self:GetChecked())
                 addon:RefreshSettingsWindow()
             end)
+            row.up = CreateFrame("Button", nil, sidebar, "UIPanelScrollUpButtonTemplate")
+            row.up:SetSize(20, 18)
+            row.up:SetPoint("TOPRIGHT", row, "TOPLEFT", -1, 0)
+            row.up:SetScript("OnClick", function() addon:MoveModule(key, -1) end)
+            row.down = CreateFrame("Button", nil, sidebar, "UIPanelScrollDownButtonTemplate")
+            row.down:SetSize(20, 18)
+            row.down:SetPoint("BOTTOMRIGHT", row, "BOTTOMLEFT", -1, 0)
+            row.down:SetScript("OnClick", function() addon:MoveModule(key, 1) end)
             window.rows[key], window.checks[key] = row, check
         end
         local divider = window:CreateTexture(nil, "ARTWORK")
@@ -205,7 +229,7 @@ function addon:ShowSettings()
         footer:SetPoint("BOTTOMLEFT", 24, 18)
         footer:SetText("/scu   |   Change settings outside combat. Closing this window ends previews.")
     end
-    self:SelectSettingsModule(window.selectedModule or self.moduleOrder[1])
+    self:SelectSettingsModule(window.selectedModule or self:GetModuleDisplayOrder()[1])
     window:Show()
 end
 
