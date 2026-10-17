@@ -16,7 +16,7 @@ for _, method in ipairs({ "SetSize", "SetPoint", "SetFrameStrata", "SetClampedTo
     "RegisterForDrag", "SetFont", "SetTextColor", "SetAllPoints", "SetThickness", "SetStartPoint",
     "SetEndPoint", "SetLooping", "SetOffset", "SetDuration", "SetSmoothing", "SetBackdrop",
     "SetBackdropColor", "SetBackdropBorderColor", "ClearAllPoints", "StartMoving", "StopMovingOrSizing",
-    "SetHyperlinksEnabled", "SetWidth", "SetHeight", "SetScrollChild", "SetJustifyH", "SetAutoFocus", "SetNumeric", "SetMaxLetters", "ClearFocus", "SetAlpha" }) do
+    "SetFrameLevel", "RegisterForClicks", "SetHighlightTexture", "SetHyperlinksEnabled", "SetWidth", "SetHeight", "SetScrollChild", "SetJustifyH", "SetAutoFocus", "SetNumeric", "SetMaxLetters", "ClearFocus", "SetAlpha" }) do
     methods[method] = function() end
 end
 function methods:SetStartPoint(point, relativeTo, x, y)
@@ -74,6 +74,10 @@ function CreateFrame(_, name)
 end
 UIParent, UISpecialFrames, SlashCmdList = object(), {}, {}
 GameTooltip = object()
+Minimap = object()
+function methods:GetFrameLevel() return 1 end
+function methods:GetWidth() return 140 end
+function methods:GetHeight() return 140 end
 STANDARD_TEXT_FONT = "test-font"
 function InCombatLockdown() return combat end
 function UnitClass() return "Death Knight", class end
@@ -104,7 +108,7 @@ C_Timer = { NewTimer = function(_, callback)
 end }
 
 for _, file in ipairs({ "SettingsHelper.lua", "ModuleSettingsHelper.lua", "TrackerFrameHelper.lua",
-    "Modules/BoneShield.lua", "Modules/DeathAndDecay.lua", "Modules/Consumables.lua", "AddonSettingsFrameHelper.lua", "ConsumablesSettingsHelper.lua", "SlashikCombatUtils.lua" }) do
+    "Modules/BoneShield.lua", "Modules/DeathAndDecay.lua", "Modules/Consumables.lua", "AddonSettingsFrameHelper.lua", "ConsumablesSettingsHelper.lua", "MinimapButtonHelper.lua", "SlashikCombatUtils.lua" }) do
     assert(loadfile(file))("SlashikCombatUtils", addon)
 end
 local startup = frames[#frames]
@@ -614,3 +618,19 @@ AuctionHouseFrame = nil
 consumables:ClickItem("item:241308", linkText, "LeftButton")
 assert(inspected == "item:241308")
 print("PASS: item links fill native Auction House search, forward modified clicks and open item tooltips")
+
+for _, frame in ipairs(frames) do
+    if frame.events.PLAYER_LOGIN then frame.scripts.OnEvent(frame, "PLAYER_LOGIN") end
+end
+local minimapButton = SlashikCombatUtilsMinimapButton
+assert(minimapButton, "Minimap button is created on login")
+local previousShow, opened = addon.ShowSettings, 0
+addon.ShowSettings = function() opened = opened + 1 end
+minimapButton.scripts.OnClick(minimapButton, "LeftButton")
+assert(opened == 1, "Left-click opens settings")
+addon.ShowSettings = previousShow
+minimapButton.scripts.OnDragStart(minimapButton)
+assert(minimapButton.scripts.OnUpdate)
+minimapButton.scripts.OnDragStop(minimapButton)
+assert(not minimapButton.scripts.OnUpdate)
+print("PASS: minimap button login, settings click and drag cleanup")

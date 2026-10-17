@@ -1,6 +1,6 @@
 # SlashikCombatUtils
 
-Retail combat trackers with independent module switches. Version 1.8 targets
+Retail combat trackers with independent module switches. Version 1.9 targets
 interface 120105. Releases use two-part versions (1.6, 1.7, and so on). This metadata target does not establish in-game compatibility testing.
 
 ## Bone Shield
@@ -162,3 +162,6 @@ Consumable names in settings and the missing-items window are clickable item lin
 to fill the open Blizzard Auction House Buy search field, then start the search.
 Outside the Buy view, clicking opens the item tooltip. Modified clicks retain normal
 WoW item-link behavior. Custom Auction House addons may handle links differently.
+
+Left-click the Slashik Combat Utils minimap icon to open settings. Left-drag it
+around the minimap to reposition it; its position is saved across reloads.
