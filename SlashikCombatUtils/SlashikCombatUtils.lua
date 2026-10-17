@@ -12,6 +12,7 @@ end)
 SLASH_SLASHIKCOMBATUTILS1 = "/scu"
 SLASH_SLASHIKCOMBATUTILS2 = "/slashikcombatutils"
 SlashCmdList.SLASHIKCOMBATUTILS = function(message)
+    if message and message:lower():match("^%s*beacons%s*$") then addon.modules.beacons:Debug(); return end
     if message and message:lower():match("^%s*debug%s*$") then
         local module = addon.modules.boneShield
         addon:Print("Bone Shield source: " .. (module.countSource or "not queried"))

@@ -108,7 +108,7 @@ C_Timer = { NewTimer = function(_, callback)
 end }
 
 for _, file in ipairs({ "SettingsHelper.lua", "ModuleSettingsHelper.lua", "TrackerFrameHelper.lua",
-    "Modules/BoneShield.lua", "Modules/DeathAndDecay.lua", "Modules/Consumables.lua", "AddonSettingsFrameHelper.lua", "ConsumablesSettingsHelper.lua", "MinimapButtonHelper.lua", "SlashikCombatUtils.lua" }) do
+    "Modules/BoneShield.lua", "Modules/DeathAndDecay.lua", "Modules/Consumables.lua", "Modules/Beacons.lua", "AddonSettingsFrameHelper.lua", "ConsumablesSettingsHelper.lua", "BeaconSettingsHelper.lua", "MinimapButtonHelper.lua", "SlashikCombatUtils.lua" }) do
     assert(loadfile(file))("SlashikCombatUtils", addon)
 end
 local startup = frames[#frames]
@@ -594,7 +594,7 @@ settingsWindow.rows.consumables.down.scripts.OnClick()
 assert(addon:GetModuleDisplayOrder()[1] == "boneShield")
 addon:GetSettings().moduleOrder = { "unknown", "consumables", "consumables" }
 local cleanOrder = addon:GetModuleDisplayOrder()
-assert(cleanOrder[1] == "consumables" and cleanOrder[2] == "boneShield" and #cleanOrder == 3)
+assert(cleanOrder[1] == "consumables" and cleanOrder[2] == "boneShield" and #cleanOrder == 4)
 assert(addon.moduleOrder[1] == "boneShield", "Display ordering does not change startup order")
 print("PASS: saved module ordering, arrows, boundaries, stale entries and combat guard")
 
@@ -634,3 +634,124 @@ assert(minimapButton.scripts.OnUpdate)
 minimapButton.scripts.OnDragStop(minimapButton)
 assert(not minimapButton.scripts.OnUpdate)
 print("PASS: minimap button login, settings click and drag cleanup")
+
+local beacon = addon.modules.beacons
+class, spec, dead, combat = "PALADIN", 65, false, false
+local talented, grouped, raid, restrictedBeacon = true, true, false, false
+local visible, deaths, own = {}, {}, {}
+C_SpellBook = { IsSpellKnown = function(id) assert(id == 156910); return talented end }
+C_Spell = { GetSpellName = function(id) return tostring(id) end, GetSpellTexture = function(id) return id end }
+C_Secrets.ShouldSpellAuraBeSecret = function() return restrictedBeacon end
+function IsInGroup() return grouped end
+function IsInRaid() return raid end
+function GetNumGroupMembers() return 2 end
+function GetNumSubgroupMembers() return 1 end
+function UnitIsConnected() return true end
+function UnitIsVisible(unit) return visible[unit] ~= false end
+function UnitIsDeadOrGhost(unit) return deaths[unit] or false end
+function UnitIsUnit(a, b) return a == b end
+C_UnitAuras.GetAuraDataByIndex = function(unit, index, filter)
+    assert(filter == "HELPFUL")
+    if restrictedBeacon then return SECRET end
+    local auras = {}
+    for _, spellID in ipairs({53563, 156910}) do
+        local value = own[unit .. spellID]
+        if rawequal(value, SECRET) then return SECRET end
+        if value then auras[#auras + 1] = { spellId = spellID, name = tostring(spellID), sourceUnit = "player" } end
+    end
+    return auras[index]
+end
+beacon:Update()
+assert(beacon.frame:IsShown() and beacon.icons[1]:IsShown() and beacon.icons[2]:IsShown())
+own.party153563, own.player156910 = {}, {}
+beacon:Update()
+assert(not beacon.frame:IsShown())
+deaths.party1 = true
+beacon:Update()
+assert(beacon.icons[1]:IsShown() and not beacon.icons[2]:IsShown(), "Death removes coverage")
+deaths.party1 = false
+own.party153563 = nil
+combat = true
+beacon:Update()
+assert(beacon.icons[1]:IsShown(), "Readable combat auras can trigger warnings")
+restrictedBeacon = true
+beacon:Update()
+assert(not beacon.frame:IsShown() and beacon.status[1] == "unknown")
+restrictedBeacon = false
+own.party153563 = SECRET
+beacon:Update()
+assert(beacon.status[1] == "unknown" and not beacon.icons[1]:IsShown())
+own.party153563 = nil
+visible.party1 = false
+beacon:Update()
+assert(beacon.status[1] == "missing" and beacon.icons[1]:IsShown(), "Invisible members must not suppress local warning")
+visible.party1 = true
+combat = false
+raid = true
+own = { raid153563 = {}, raid2156910 = {} }
+beacon:Update()
+assert(not beacon.frame:IsShown(), "Raid unit tokens are supported")
+talented = false
+beacon:Update()
+assert(beacon.status[1] == "inactive")
+talented = true
+grouped = false
+beacon:Update()
+assert(not beacon.frame:IsShown())
+beacon:StartPreview()
+assert(beacon.frame:IsShown())
+combat = true
+beacon:Update()
+assert(not beacon.preview and not beacon.frame:IsShown())
+combat = false
+addon:SelectSettingsModule("beacons")
+assert(settingsWindow.pages.beacons:IsShown())
+beacon:Disable()
+assert(not next(beacon.events.events) and not beacon.events.scripts.OnUpdate)
+print("PASS: beacon ownership filter, death, party/raid, talent gate, combat, secret guards, preview and settings")
+
+beacon.enabled = true
+grouped, raid, talented, combat = true, false, true, false
+local originalIndex = C_UnitAuras.GetAuraDataByIndex
+C_Secrets.ShouldSpellAuraBeSecret = function() return true end
+own = {}
+beacon:Update()
+assert(beacon.status[1] == "missing", "Potential secrecy must not block a readable dungeon scan")
+C_UnitAuras.GetAuraDataByIndex = function(unit, index)
+    if index == 1 then return {spellId = 53563, sourceUnit = "party1"} end
+    if index == 2 then return {spellId = 53563, sourceUnit = "player"} end
+end
+assert(beacon:Scan(53563) == "present", "Find own beacon after another paladin's")
+C_UnitAuras.GetAuraDataByIndex = function(unit, index)
+    if index == 1 then return {spellId = 53563, sourceUnit = "party1"} end
+end
+assert(beacon:Scan(53563) == "missing", "Another paladin's beacon does not count")
+C_UnitAuras.GetAuraDataByIndex = function(unit, index)
+    if index == 1 then return {spellId = SECRET, name = "53563", sourceUnit = "player"} end
+end
+assert(beacon:Scan(53563) == "present", "Readable name can identify a beacon")
+C_UnitAuras.GetAuraDataByIndex = function(unit, index)
+    if index == 1 then return {spellId = 53563, sourceUnit = SECRET} end
+end
+assert(beacon:Scan(53563) == "unknown", "Restricted ownership cannot prove missing")
+C_UnitAuras.GetAuraDataByIndex = function() error("restricted") end
+assert(beacon:Scan(53563) == "unknown")
+print("PASS: indexed beacon scanning, potential secrecy, other casters and readable-name fallback")
+
+C_UnitAuras.GetAuraDataByIndex = function() return nil end
+visible.party1 = false
+assert(beacon:Scan(53563) == "missing")
+local visibleAPI = UnitIsVisible
+function UnitIsVisible(unit) if unit == "party1" then return nil end; return true end
+assert(beacon:Scan(53563) == "missing", "Nil visibility means out of view")
+function UnitIsVisible() return false end
+assert(beacon:Scan(53563) == "unknown", "No checked members is not proof of missing")
+function UnitIsVisible(unit) if unit == "party1" then return SECRET end; return true end
+assert(beacon:Scan(53563) == "unknown", "Secret visibility remains unknown")
+UnitIsVisible = visibleAPI
+visible.party1 = true
+local connectionAPI = UnitIsConnected
+function UnitIsConnected(unit) return unit ~= "party1" end
+assert(beacon:Scan(53563) == "missing", "Offline members are skipped")
+UnitIsConnected = connectionAPI
+print("PASS: out-of-view/offline members skipped; secret visibility and empty coverage guarded")

@@ -1,6 +1,6 @@
 # SlashikCombatUtils
 
-Retail combat trackers with independent module switches. Version 1.9 targets
+Retail combat trackers with independent module switches. Version 1.10 targets
 interface 120105. Releases use two-part versions (1.6, 1.7, and so on). This metadata target does not establish in-game compatibility testing.
 
 ## Bone Shield
@@ -165,3 +165,25 @@ WoW item-link behavior. Custom Auction House addons may handle links differently
 
 Left-click the Slashik Combat Utils minimap icon to open settings. Left-drag it
 around the minimap to reposition it; its position is saved across reloads.
+
+## Beacon Reminder
+
+For Holy Paladins with Beacon of Faith talented, checks your own Beacon of Light
+and Beacon of Faith on living party/raid members. Missing spells display separate
+bouncing icons at screen center. Solo and dead players are not warned. The module
+is enabled by default but only runs live detection for the eligible specialization.
+Use its settings page to toggle bouncing, preview icons, and set X/Y position or
+scale (press Enter to save). Zero X/Y means screen center.
+
+Combat detection is experimental pending in-game testing: readable aura results
+can produce warnings. Offline/out-of-view members are skipped, so missing means
+no beacon was found on observable living members; a beacon on a distant player
+may still exist. Restricted queries, secret results, or no observable living
+members yield **unknown**, not a missing warning. It never infers
+combat aura state from a cached pre-combat result. `/scu beacons` reports each
+spell as present, missing, unknown, inactive or disabled without exposing secret
+data. Test both beacons, a recipient dying, and reapplication during a real fight.
+
+Beacon detection enumerates helpful auras and matches readable spell IDs/names plus
+your player caster identity. A potentially secret spell flag alone does not block
+the scan. `/scu beacons` also reports the reason when detection is unknown.

@@ -16,6 +16,12 @@ function addon:GetSettings()
     if type(settings.consumables) ~= "table" then settings.consumables = {} end
     if type(settings.consumables.selected) ~= "table" then settings.consumables.selected = {} end
     if type(settings.consumables.minimums) ~= "table" then settings.consumables.minimums = {} end
+    if type(settings.beacons) ~= "table" then settings.beacons = {} end
+    local beacons = settings.beacons
+    beacons.bounce = beacons.bounce ~= false
+    beacons.x = number(beacons.x, 0, -10000, 10000)
+    beacons.y = number(beacons.y, 0, -10000, 10000)
+    beacons.scale = number(beacons.scale, 1, 0.5, 3)
     local bone = settings.boneShield
     bone.combatOnly = bone.combatOnly == true
     bone.showDeathAndDecay = bone.showDeathAndDecay ~= false
