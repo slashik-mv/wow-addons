@@ -35,6 +35,9 @@ end
 -- WoW broadcasts standard party countdowns even when others lack this addon.
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("START_PLAYER_COUNTDOWN")
+frame:RegisterEvent("CHALLENGE_MODE_COMPLETED")
+frame:RegisterEvent("CHALLENGE_MODE_START")
+frame:RegisterEvent("CHALLENGE_MODE_RESET")
 frame:RegisterEvent("LFG_PROPOSAL_SUCCEEDED")
 frame:RegisterEvent("LFG_PROPOSAL_FAILED")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -42,7 +45,11 @@ frame:RegisterEvent("GROUP_LEFT")
 frame:RegisterEvent("GROUP_ROSTER_UPDATE")
 frame:RegisterEvent("LFG_UPDATE")
 frame:SetScript("OnEvent", function(_, event, ...)
-    if event == "START_PLAYER_COUNTDOWN" then
+    if event == "CHALLENGE_MODE_COMPLETED" then
+        addon.OnChallengeModeCompleted()
+    elseif event == "CHALLENGE_MODE_START" or event == "CHALLENGE_MODE_RESET" then
+        addon.ResetCompletionMessage()
+    elseif event == "START_PLAYER_COUNTDOWN" then
         addon.OnPlayerCountdownStarted()
     elseif event == "LFG_PROPOSAL_SUCCEEDED" then
         addon.OnDungeonFinderProposalSucceeded()
@@ -52,6 +59,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
         addon.OnDungeonFinderGroupUpdated()
     elseif event == "GROUP_LEFT" then
         addon.OnDungeonFinderGroupLeft()
+        addon.CancelCompletionMessage()
     elseif event == "LFG_PROPOSAL_FAILED" then
         addon.ResetDungeonFinderGreeting()
     end

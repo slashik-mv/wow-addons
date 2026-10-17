@@ -46,3 +46,5 @@ end
 addon.SendRandomPullMessage = SendRandomPullMessage
 addon.StartPullCountdown = StartPullCountdown
 addon.OnPlayerCountdownStarted = OnPlayerCountdownStarted
+
+addon.SendRandomMessage = SendRandomMessage

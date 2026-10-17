@@ -12,6 +12,9 @@ end
 
 local function SetAutoPullMessages(enabled)
     GetSettings().autoPullMessages = enabled
+    if not enabled and addon.CancelCompletionMessage then
+        addon.CancelCompletionMessage()
+    end
     if not enabled and addon.ResetDungeonFinderGreeting then
         addon.ResetDungeonFinderGreeting()
     end
