@@ -778,7 +778,7 @@ end
 bagCounts={ [5512]=3, [271883]=5, [241304]=5, [258138]=5 }
 addon:SetModuleEnabled("autoHealthPot",true)
 health:Update()
-assert(macroBody == "#showtooltip\n/stopcasting\n/castsequence [@player] reset=combat item:5512, item:271883")
+assert(macroBody == "#showtooltip\n/stopcasting\n/castsequence [@player] reset=combat/60 item:5512, item:271883")
 local previousWrites=writes
 health:Update(); assert(writes == previousWrites, "Do not rewrite unchanged macros")
 bagCounts[271884]=1; health:Update()
@@ -841,3 +841,11 @@ macroBody=macroBody .. "/say manual change"
 health:Update()
 assert(writes == previousWrites, "Real command edits still prevent automatic replacement")
 print("PASS: reloaded macro line endings, Demonic Healthstone update, readback and manual edit protection")
+
+-- Existing ownership records keep the previous combat-only body during migration.
+macroBody=oldBody
+health:Settings().ownedBodies["test-player"]=oldBody
+health:Update()
+assert(macroBody:find("reset=combat/60 item:224464, item:258138",1,true), "Existing macro gains inactivity fallback without losing item order")
+assert(health.message:find("Macro ready",1,true))
+print("PASS: combat-only macro migrates to combat plus inactivity reset")

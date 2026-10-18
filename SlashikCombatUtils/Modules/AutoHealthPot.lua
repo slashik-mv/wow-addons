@@ -52,7 +52,7 @@ function module:Build()
         end
     end
     if #sequence == 0 then return "#showtooltip", false end
-    return "#showtooltip\n/stopcasting\n/castsequence [@player] reset=combat " .. table.concat(sequence, ", "), true
+    return "#showtooltip\n/stopcasting\n/castsequence [@player] reset=combat/60 " .. table.concat(sequence, ", "), true
 end
 -- Compare commands, allowing harmless newline normalization after a reload.
 local function normalizedBody(body)

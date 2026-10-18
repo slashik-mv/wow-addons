@@ -5,7 +5,7 @@ addon:RegisterModuleSettings("autoHealthPot", function(panel)
         local f=panel:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall")
         f:SetPoint("TOPLEFT",x,y); f:SetWidth(width or 520); f:SetJustifyH("LEFT"); f:SetText(text); return f
     end
-    label("Select items and move them into priority order. Both potion qualities count.\nUses Healthstone plus ONE available potion; higher quality is preferred.\nOne press per item. A cooling-down step cannot be skipped.",8,-94)
+    label("Select items and move them into priority order. Both potion qualities count.\nUses Healthstone plus ONE available potion; higher quality is preferred.\nOne press per item. Resets on leaving combat or after 60 seconds without pressing.\nA cooling-down step cannot be skipped.",8,-94)
     local rows={}
     for _, item in ipairs(module.items) do
         local id=item.id

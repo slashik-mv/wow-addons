@@ -192,7 +192,9 @@ the scan. `/scu beacons` also reports the reason when detection is unknown.
 
 Enable this optional module in `/scu` to create the character macro **SCU Health Pot**.
 Drag it from `/macro` onto your action bar once. Each press uses the next item in
-its sequence, resetting on combat changes. `/stopcasting` interrupts your current
+its sequence, resetting when leaving combat or after 60 seconds without pressing
+the macro (including during combat). Every press restarts that timer; this does
+not reset item cooldowns. `/stopcasting` interrupts your current
 cast when you press it.
 
 Five selectable entries have up/down priority arrows: Demonic Healthstone (224464),
