@@ -12,6 +12,11 @@ function addon:GetSettings()
     local settings = db.settings
     if type(settings.modules) ~= "table" then settings.modules = {} end
     if settings.modules.consumables == nil then settings.modules.consumables = false end
+    if settings.modules.autoHealthPot == nil then settings.modules.autoHealthPot = false end
+    if type(settings.autoHealthPot) ~= "table" then settings.autoHealthPot = {} end
+    for _, key in ipairs({"selected", "order", "ownedBodies"}) do
+        if type(settings.autoHealthPot[key]) ~= "table" then settings.autoHealthPot[key] = {} end
+    end
     if type(settings.boneShield) ~= "table" then settings.boneShield = {} end
     if type(settings.consumables) ~= "table" then settings.consumables = {} end
     if type(settings.consumables.selected) ~= "table" then settings.consumables.selected = {} end

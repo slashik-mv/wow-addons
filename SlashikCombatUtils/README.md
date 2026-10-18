@@ -187,3 +187,26 @@ data. Test both beacons, a recipient dying, and reapplication during a real figh
 Beacon detection enumerates helpful auras and matches readable spell IDs/names plus
 your player caster identity. A potentially secret spell flag alone does not block
 the scan. `/scu beacons` also reports the reason when detection is unknown.
+
+## Auto Health Pot
+
+Enable this optional module in `/scu` to create the character macro **SCU Health Pot**.
+Drag it from `/macro` onto your action bar once. Each press uses the next item in
+its sequence, resetting on combat changes. `/stopcasting` interrupts your current
+cast when you press it.
+
+Five selectable entries have up/down priority arrows: Demonic Healthstone (224464),
+Healthstone (5512),
+Concentrated Silvermoon Health Potion (271884/271883), Silvermoon Health Potion
+(241304/241305), and Potent Healing Potion (258138). Both potion qualities are
+supported, preferring the higher quality in bags. The sequence includes Healthstone
+and at most one potion because the healing potions share a cooldown; their relative
+order follows your list. No racial or class spells, mana items or food are included.
+
+Bag changes and settings changes update the macro outside combat. Updates during
+combat wait until it ends. A castsequence cannot skip an unavailable/cooling-down
+step. Empty bags produce a tooltip-only macro. Existing same-name or manually
+edited macros are not overwritten; rename them and click **Update macro**. A free
+character macro slot is required. Disabling the module keeps the macro but stops
+updates. This module is disabled by default, with all five item choices selected. Demonic Healthstone starts first, including
+for existing saved lists; it can then be moved or unchecked.

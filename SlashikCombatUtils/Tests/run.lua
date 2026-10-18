@@ -108,7 +108,7 @@ C_Timer = { NewTimer = function(_, callback)
 end }
 
 for _, file in ipairs({ "SettingsHelper.lua", "ModuleSettingsHelper.lua", "TrackerFrameHelper.lua",
-    "Modules/BoneShield.lua", "Modules/DeathAndDecay.lua", "Modules/Consumables.lua", "Modules/Beacons.lua", "AddonSettingsFrameHelper.lua", "ConsumablesSettingsHelper.lua", "BeaconSettingsHelper.lua", "MinimapButtonHelper.lua", "SlashikCombatUtils.lua" }) do
+    "Modules/BoneShield.lua", "Modules/DeathAndDecay.lua", "Modules/Consumables.lua", "Modules/Beacons.lua", "Modules/AutoHealthPot.lua", "AddonSettingsFrameHelper.lua", "ConsumablesSettingsHelper.lua", "BeaconSettingsHelper.lua", "AutoHealthPotSettingsHelper.lua", "MinimapButtonHelper.lua", "SlashikCombatUtils.lua" }) do
     assert(loadfile(file))("SlashikCombatUtils", addon)
 end
 local startup = frames[#frames]
@@ -594,7 +594,7 @@ settingsWindow.rows.consumables.down.scripts.OnClick()
 assert(addon:GetModuleDisplayOrder()[1] == "boneShield")
 addon:GetSettings().moduleOrder = { "unknown", "consumables", "consumables" }
 local cleanOrder = addon:GetModuleDisplayOrder()
-assert(cleanOrder[1] == "consumables" and cleanOrder[2] == "boneShield" and #cleanOrder == 4)
+assert(cleanOrder[1] == "consumables" and cleanOrder[2] == "boneShield" and #cleanOrder == 5)
 assert(addon.moduleOrder[1] == "boneShield", "Display ordering does not change startup order")
 print("PASS: saved module ordering, arrows, boundaries, stale entries and combat guard")
 
@@ -755,3 +755,89 @@ function UnitIsConnected(unit) return unit ~= "party1" end
 assert(beacon:Scan(53563) == "missing", "Offline members are skipped")
 UnitIsConnected = connectionAPI
 print("PASS: out-of-view/offline members skipped; secret visibility and empty coverage guarded")
+
+local health=addon.modules.autoHealthPot
+assert(not health.enabled)
+combat=false
+local macroBody, writes, exists = nil, 0, false
+function UnitGUID() return "test-player" end
+function GetMacroIndexByName() return exists and 121 or 0 end
+function GetMacroInfo() return "SCU Health Pot", 134400, macroBody end
+function GetNumMacros() return 0, 0 end
+function CreateMacro(name, icon, body, character)
+    assert(not combat and character and name == "SCU Health Pot")
+    macroBody=body; exists=true; writes=writes+1; return 121
+end
+function EditMacro(index,name,icon,body)
+    assert(not combat and index == 121); macroBody=body; writes=writes+1; return index
+end
+C_Item.GetItemCount=function(id,bank,uses,reagent,account)
+    assert(not bank and uses and not reagent and not account)
+    return bagCounts[id] or 0
+end
+bagCounts={ [5512]=3, [271883]=5, [241304]=5, [258138]=5 }
+addon:SetModuleEnabled("autoHealthPot",true)
+health:Update()
+assert(macroBody == "#showtooltip\n/stopcasting\n/castsequence [@player] reset=combat item:5512, item:271883")
+local previousWrites=writes
+health:Update(); assert(writes == previousWrites, "Do not rewrite unchanged macros")
+bagCounts[271884]=1; health:Update()
+assert(macroBody:find("item:271884",1,true) and not macroBody:find("item:271883",1,true))
+health:Move(271884,-1); health:Update()
+assert(macroBody:find("item:271884, item:5512",1,true))
+health:Settings().selected[271884]=false; health:Update()
+assert(macroBody:find("item:241304",1,true))
+combat=true; previousWrites=writes
+bagCounts={ [258138]=1 }; health:Request()
+assert(health.pending and writes == previousWrites)
+combat=false; health.events.scripts.OnEvent(); health.timer.callback()
+assert(macroBody:find("item:258138",1,true) and not macroBody:find("5512",1,true))
+bagCounts={}; health:Update(); assert(macroBody == "#showtooltip")
+macroBody="user edited macro"; health:Update()
+assert(macroBody == "user edited macro", "Never overwrite manually edited macros")
+exists=false
+function GetNumMacros() return 0,18 end
+previousWrites=writes; health:Update(); assert(writes == previousWrites)
+addon:SelectSettingsModule("autoHealthPot")
+assert(settingsWindow.pages.autoHealthPot:IsShown())
+health:Request(); local timer=health.timer
+health:Disable(); assert(timer.cancelled and not next(health.events.events))
+timer.callback(); assert(writes == previousWrites)
+print("PASS: auto health pot ordering, qualities, one potion, combat deferral, ownership, slots and lifecycle")
+
+health:Settings().order={5512,271884,241305,258138}
+health:Settings().selected={}
+assert(health:Order()[1].id == 224464, "New stone becomes first in existing saved priorities")
+bagCounts={ [224464]=3, [271884]=2 }
+assert(health:Build():find("item:224464, item:271884",1,true))
+health:Settings().selected[224464]=false
+assert(not health:Build():find("224464",1,true))
+health:Settings().selected[224464]=true
+health.enabled=true
+health:Move(224464,1)
+assert(health:Order()[1].id == 5512 and health:Order()[2].id == 224464, "User can change new default priority")
+print("PASS: Demonic Healthstone priority migration, sequence and checkbox")
+
+-- Simulate reload text normalization while keeping the persisted ownership record.
+exists=true
+health:Settings().order={224464,5512,271884,241305,258138}
+local oldBody="#showtooltip\n/stopcasting\n/castsequence [@player] reset=combat item:258138"
+health:Settings().ownedBodies["test-player"]=oldBody
+macroBody=oldBody:gsub("\n", "\r\n") .. "\r\n"
+bagCounts={ [224464]=3, [258138]=67 }
+local rawEdit=EditMacro
+function EditMacro(index,name,icon,body)
+    local result=rawEdit(index,name,icon,body)
+    macroBody=macroBody .. "\n"
+    return result
+end
+health:Update()
+assert(macroBody:find("item:224464, item:258138",1,true), "Reload updates the owned potion macro with Demonic Healthstone")
+assert(health.message:find("Macro ready",1,true), "Readback accepts the client's final newline")
+previousWrites=writes
+health:Update()
+assert(writes == previousWrites, "Normalized text does not cause repeated edits")
+macroBody=macroBody .. "/say manual change"
+health:Update()
+assert(writes == previousWrites, "Real command edits still prevent automatic replacement")
+print("PASS: reloaded macro line endings, Demonic Healthstone update, readback and manual edit protection")
