@@ -212,3 +212,11 @@ edited macros are not overwritten; rename them and click **Update macro**. A fre
 character macro slot is required. Disabling the module keeps the macro but stops
 updates. This module is disabled by default, with all five item choices selected. Demonic Healthstone starts first, including
 for existing saved lists; it can then be moved or unchecked.
+
+## Character settings
+
+All module switches and options are saved separately for each character, including
+item selections, minimum quantities, priorities, tracker positions, module order,
+and minimap button position. On first login after this update, each character
+receives a copy of the previous shared settings. Later edits affect only that
+character. Existing character settings are preserved on reload.

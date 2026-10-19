@@ -5,10 +5,21 @@ local function number(value, default, low, high)
     return value
 end
 
+local function copySettings(value)
+    if type(value) ~= "table" then return value end
+    local result = {}
+    for key, entry in pairs(value) do result[key] = copySettings(entry) end
+    return result
+end
+
 function addon:GetSettings()
-    if type(SlashikCombatUtilsDB) ~= "table" then SlashikCombatUtilsDB = {} end
-    local db = SlashikCombatUtilsDB
-    if type(db.settings) ~= "table" then db.settings = {} end
+    if type(SlashikCombatUtilsCharDB) ~= "table" then SlashikCombatUtilsCharDB = {} end
+    local db = SlashikCombatUtilsCharDB
+    if type(db.settings) ~= "table" then
+        -- Keep the old account settings as a migration snapshot for other characters.
+        local legacy = type(SlashikCombatUtilsDB) == "table" and SlashikCombatUtilsDB.settings
+        db.settings = type(legacy) == "table" and copySettings(legacy) or {}
+    end
     local settings = db.settings
     if type(settings.modules) ~= "table" then settings.modules = {} end
     if settings.modules.consumables == nil then settings.modules.consumables = false end

@@ -499,7 +499,7 @@ assert(#consumables:GetMissing() == 0, "Either selected oil or food satisfies it
 print("PASS: Enchanting and Food alternatives")
 
 -- Exact quality variants from the player's bag screenshots.
-SlashikCombatUtilsDB.settings.consumables.selected = {
+SlashikCombatUtilsCharDB.settings.consumables.selected = {
     [241322] = true, [241308] = true, [243734] = true,
 }
 bagCounts = {}
@@ -523,7 +523,7 @@ for _, group in ipairs(consumables.groups) do
         if item.variants then
             ranked = ranked + 1
             assert(#item.variants == 2)
-            SlashikCombatUtilsDB.settings.consumables.selected = { [item.id] = true }
+            SlashikCombatUtilsCharDB.settings.consumables.selected = { [item.id] = true }
             bagCounts = {}
             assert(#consumables:GetMissing() == 1)
             for _, variant in ipairs(item.variants) do
@@ -536,7 +536,7 @@ end
 assert(ranked == 9, "All flasks, potions and weapon consumables have both qualities")
 print("PASS: both quality variants for all nine ranked consumables")
 
-SlashikCombatUtilsDB.settings.consumables.selected = { [241308] = true }
+SlashikCombatUtilsCharDB.settings.consumables.selected = { [241308] = true }
 assert(consumables:GetMinimum(241308) == 1)
 consumables:SetMinimum(241308, "20")
 bagCounts = { [241308] = 9, [241309] = 10 }
@@ -849,3 +849,40 @@ health:Update()
 assert(macroBody:find("reset=combat/60 item:224464, item:258138",1,true), "Existing macro gains inactivity fallback without losing item order")
 assert(health.message:find("Macro ready",1,true))
 print("PASS: combat-only macro migrates to combat plus inactivity reset")
+
+-- Simulate switching characters by loading separate per-character SavedVariables.
+local legacy = {
+    modules={consumables=true, autoHealthPot=true, beacons=false},
+    consumables={selected={[241308]=true}, minimums={[241308]=12}},
+    autoHealthPot={order={224464,258138}, selected={[5512]=false}, ownedBodies={ ["test-player"]=oldBody }},
+    boneShield={x=42,y=80,scale=1.2}, beacons={x=100,bounce=false},
+    moduleOrder={"autoHealthPot","consumables"}, minimapAngle=2,
+}
+SlashikCombatUtilsDB={settings=legacy}
+SlashikCombatUtilsCharDB=nil
+local first=addon:GetSettings()
+local firstDB=SlashikCombatUtilsCharDB
+assert(first ~= legacy and first.consumables ~= legacy.consumables)
+assert(first.consumables.minimums[241308] == 12 and first.boneShield.x == 42)
+assert(first.autoHealthPot.ownedBodies["test-player"] == oldBody)
+first.modules.consumables=false
+first.consumables.minimums[241308]=40
+first.autoHealthPot.order[1]=258138
+first.boneShield.x=-50
+first.moduleOrder[1]="beacons"
+first.minimapAngle=3
+SlashikCombatUtilsCharDB=nil
+local second=addon:GetSettings()
+assert(second.modules.consumables and second.consumables.minimums[241308] == 12)
+assert(second.autoHealthPot.order[1] == 224464 and second.boneShield.x == 42)
+assert(second.moduleOrder[1] == "autoHealthPot" and second.minimapAngle == 2)
+second.modules.beacons=true
+assert(not first.modules.beacons and not legacy.modules.beacons)
+SlashikCombatUtilsCharDB=firstDB
+assert(addon:GetSettings() == first and first.consumables.minimums[241308] == 40, "Reload never migrates twice")
+SlashikCombatUtilsDB=nil
+SlashikCombatUtilsCharDB=nil
+local fresh=addon:GetSettings()
+assert(fresh.modules.consumables == false and fresh.modules.autoHealthPot == false)
+assert(fresh.boneShield.x == 0)
+print("PASS: per-character migration, nested isolation, reload persistence, macro ownership and fresh defaults")
