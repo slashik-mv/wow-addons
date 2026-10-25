@@ -69,6 +69,17 @@ assert(addon:RecordCashFlow() == -500000)
 local cashFlow = addon:GetCashFlowSummary()
 assert(cashFlow.daily.earnings == 1000000 and cashFlow.daily.spending == 500000)
 assert(cashFlow.total.earnings == 1000000 and cashFlow.total.spending == 500000)
+cashFlow.periodVersion = 1
+cashFlow.weekly.earnings, cashFlow.weekly.spending = 400000, 100000
+cashFlow = addon:GetCashFlowSummary()
+assert(cashFlow.periodVersion == 2)
+assert(cashFlow.weekly.earnings == 1000000 and cashFlow.weekly.spending == 500000,
+  "weekly cash flow repairs values lost by the unstable period key")
+addon.db.nextReset = 7200
+local weeklyPeriod = addon:GetCashFlowSummary().weekly
+addon.db.nextReset = 7199
+assert(addon:GetCashFlowSummary().weekly == weeklyPeriod,
+  "small reset-time differences keep the same weekly period")
 money, warbandMoney = 140500000, 460000000
 assert(addon:UpdateCharacterMoney() and addon:UpdateWarbandMoney())
 assert(addon:RecordCashFlow() == 0, "character-to-Warband transfers do not change cash flow")

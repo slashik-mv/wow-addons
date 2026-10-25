@@ -57,7 +57,8 @@ local function CashFlowPeriodKeys(nextReset)
   local year, month, day = calendar.year, calendar.month, calendar.monthDay
   return {
     daily = string.format("%04d-%02d-%02d", year, month, day),
-    weekly = tostring(math.floor((nextReset or 0) / 3600)),
+    -- Round to the nearest hour so small API timing differences cannot create a new week.
+    weekly = tostring(math.floor(((nextReset or 0) + 1800) / 3600)),
     monthly = string.format("%04d-%02d", year, month),
   }
 end
@@ -150,7 +151,21 @@ function addon:InitializeCashFlow()
   cashFlow.total.earnings = cashFlow.total.earnings or 0
   cashFlow.total.spending = cashFlow.total.spending or 0
 
-  for period, key in pairs(CashFlowPeriodKeys(self.db.nextReset)) do
+  local periodKeys = CashFlowPeriodKeys(self.db.nextReset)
+  if (cashFlow.periodVersion or 0) < 2 then
+    -- Version 1 rounded the reset deadline down. Near an hour boundary that could
+    -- clear the weekly bucket while leaving today's bucket intact.
+    if type(cashFlow.weekly) == "table" then
+      cashFlow.weekly.key = periodKeys.weekly
+      if type(cashFlow.daily) == "table" then
+        cashFlow.weekly.earnings = math.max(cashFlow.weekly.earnings or 0, cashFlow.daily.earnings or 0)
+        cashFlow.weekly.spending = math.max(cashFlow.weekly.spending or 0, cashFlow.daily.spending or 0)
+      end
+    end
+    cashFlow.periodVersion = 2
+  end
+
+  for period, key in pairs(periodKeys) do
     if type(cashFlow[period]) ~= "table" or cashFlow[period].key ~= key then
       cashFlow[period] = NewCashFlowPeriod(key)
     end
