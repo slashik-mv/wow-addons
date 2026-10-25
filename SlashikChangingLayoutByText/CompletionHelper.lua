@@ -39,7 +39,7 @@ local function OnChallengeModeCompleted()
         end
     end
 
-    TryCompletionMessage()
+    C_Timer.After(3, TryCompletionMessage)
 end
 
 addon.OnChallengeModeCompleted = OnChallengeModeCompleted
