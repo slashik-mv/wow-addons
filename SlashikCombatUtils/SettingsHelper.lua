@@ -22,6 +22,10 @@ function addon:GetSettings()
     end
     local settings = db.settings
     if type(settings.modules) ~= "table" then settings.modules = {} end
+    -- Preserve the original trackers' historical defaults; new modules opt in.
+    if settings.modules.boneShield == nil then settings.modules.boneShield = true end
+    if settings.modules.beacons == nil then settings.modules.beacons = true end
+    if settings.modules.demonSpikes == nil then settings.modules.demonSpikes = false end
     if settings.modules.consumables == nil then settings.modules.consumables = false end
     if settings.modules.autoHealthPot == nil then settings.modules.autoHealthPot = false end
     if type(settings.autoHealthPot) ~= "table" then settings.autoHealthPot = {} end
@@ -38,6 +42,13 @@ function addon:GetSettings()
     beacons.x = number(beacons.x, 0, -10000, 10000)
     beacons.y = number(beacons.y, 0, -10000, 10000)
     beacons.scale = number(beacons.scale, 1, 0.5, 3)
+    if type(settings.demonSpikes) ~= "table" then settings.demonSpikes = {} end
+    local spikes = settings.demonSpikes
+    spikes.bounce = spikes.bounce ~= false
+    spikes.combatOnly = spikes.combatOnly == true
+    spikes.x = number(spikes.x, 0, -10000, 10000)
+    spikes.y = number(spikes.y, -100, -10000, 10000)
+    spikes.scale = number(spikes.scale, 1, 0.5, 3)
     local bone = settings.boneShield
     bone.combatOnly = bone.combatOnly == true
     bone.showDeathAndDecay = bone.showDeathAndDecay ~= false

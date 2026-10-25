@@ -8,7 +8,7 @@ function addon:RegisterModule(key, module)
 end
 
 function addon:IsModuleEnabled(key)
-    return self.modules[key] ~= nil and self:GetSettings().modules[key] ~= false
+    return self.modules[key] ~= nil and self:GetSettings().modules[key] == true
 end
 
 function addon:SetModuleEnabled(key, enabled)

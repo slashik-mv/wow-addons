@@ -220,3 +220,19 @@ item selections, minimum quantities, priorities, tracker positions, module order
 and minimap button position. On first login after this update, each character
 receives a copy of the previous shared settings. Later edits affect only that
 character. Existing character settings are preserved on reload.
+
+## Demon Spikes (Vengeance Demon Hunter)
+
+Disabled by default. Enable Demon Spikes in `/scu` separately on each character.
+New modules are opt-in; existing saved module choices are preserved.
+
+Uses the curved-line tracker layout: Fury on the left, active Demon Spikes buff
+seconds in the middle, and Soul Fragments on the right. Green lines mean active;
+red lines bounce when the buff is missing. It runs only for living Vengeance
+Demon Hunters and has per-character enable, bounce, combat-only, position, and
+scale options. Green/red previews can be dragged with coordinates displayed.
+
+Restricted combat data is displayed without calculations where supported. Gray
+lines mean buff presence cannot be confirmed, so no missing-buff bounce is shown.
+Add Demon Spikes to Blizzard's buff icon/bar viewer for its countdown fallback.
+Soul Fragments use Soul Cleave's display count; unavailable resource values show ?.

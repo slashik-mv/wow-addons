@@ -108,7 +108,7 @@ C_Timer = { NewTimer = function(_, callback)
 end }
 
 for _, file in ipairs({ "SettingsHelper.lua", "ModuleSettingsHelper.lua", "TrackerFrameHelper.lua",
-    "Modules/BoneShield.lua", "Modules/DeathAndDecay.lua", "Modules/Consumables.lua", "Modules/Beacons.lua", "Modules/AutoHealthPot.lua", "AddonSettingsFrameHelper.lua", "ConsumablesSettingsHelper.lua", "BeaconSettingsHelper.lua", "AutoHealthPotSettingsHelper.lua", "MinimapButtonHelper.lua", "SlashikCombatUtils.lua" }) do
+    "Modules/BoneShield.lua", "Modules/DeathAndDecay.lua", "Modules/Consumables.lua", "Modules/Beacons.lua", "Modules/AutoHealthPot.lua", "Modules/DemonSpikes.lua", "AddonSettingsFrameHelper.lua", "ConsumablesSettingsHelper.lua", "BeaconSettingsHelper.lua", "DemonSpikesSettingsHelper.lua", "AutoHealthPotSettingsHelper.lua", "MinimapButtonHelper.lua", "SlashikCombatUtils.lua" }) do
     assert(loadfile(file))("SlashikCombatUtils", addon)
 end
 local startup = frames[#frames]
@@ -594,7 +594,7 @@ settingsWindow.rows.consumables.down.scripts.OnClick()
 assert(addon:GetModuleDisplayOrder()[1] == "boneShield")
 addon:GetSettings().moduleOrder = { "unknown", "consumables", "consumables" }
 local cleanOrder = addon:GetModuleDisplayOrder()
-assert(cleanOrder[1] == "consumables" and cleanOrder[2] == "boneShield" and #cleanOrder == 5)
+assert(cleanOrder[1] == "consumables" and cleanOrder[2] == "boneShield" and #cleanOrder == 6)
 assert(addon.moduleOrder[1] == "boneShield", "Display ordering does not change startup order")
 print("PASS: saved module ordering, arrows, boundaries, stale entries and combat guard")
 
@@ -886,3 +886,50 @@ local fresh=addon:GetSettings()
 assert(fresh.modules.consumables == false and fresh.modules.autoHealthPot == false)
 assert(fresh.boneShield.x == 0)
 print("PASS: per-character migration, nested isolation, reload persistence, macro ownership and fresh defaults")
+
+function UnitIsDeadOrGhost() return dead end
+local spikes=addon.modules.demonSpikes
+class,spec,dead,combat="DEMONHUNTER",581,false,false
+local spikesAura, spikesRestricted, furyValue, soulsValue = nil,false,75,4
+C_Secrets.ShouldSpellAuraBeSecret=function(id) assert(id==203819); return spikesRestricted end
+C_UnitAuras.GetPlayerAuraBySpellID=function(id) assert(id==203819); return spikesAura end
+function UnitPower(unit,power) assert(unit=="player" and power==17); return furyValue end
+C_Spell.GetSpellCastCount=function(id) assert(id==228477); return soulsValue end
+BuffIconCooldownViewer=nil; BuffBarCooldownViewer=nil
+assert(not addon:IsModuleEnabled("demonSpikes"), "New tracker defaults off")
+assert(not addon:IsModuleEnabled("testModule"), "Unconfigured future modules default off")
+addon:SetModuleEnabled("demonSpikes", true)
+assert(addon:GetSettings().modules.demonSpikes == true, "Explicit enable persists")
+assert(spikes.frame:IsShown() and spikes.frame.count.text==0)
+assert(spikes.frame.timer.text==75 and spikes.frame.rightTimer.text==4)
+assert(spikes.frame.arcs[1].bounce:IsPlaying())
+spikesAura={expirationTime=108.2}; spikes:Update()
+assert(spikes.frame.count.text==9 and not spikes.frame.arcs[1].bounce:IsPlaying())
+assert(spikes.frame.arcs[1].lines[1].color[2]==1)
+spikesAura=nil; addon:GetSettings().demonSpikes.bounce=false; spikes:Update()
+assert(not spikes.frame.arcs[1].bounce:IsPlaying())
+addon:GetSettings().demonSpikes.bounce=true
+combat=true; spikesRestricted=true; furyValue=SECRET; soulsValue=SECRET
+spikes:Update()
+assert(rawequal(spikes.frame.timer.text,SECRET) and rawequal(spikes.frame.rightTimer.text,SECRET))
+assert(not spikes.frame.arcs[1].bounce:IsPlaying(), "Restricted aura cannot trigger false missing warning")
+local viewerItem={cooldownID=99,auraDataUnit="player", GetDurationFontString=function() return {GetText=function() return SECRET end} end}
+BuffIconCooldownViewer={itemFramePool={EnumerateActive=function() local done=false; return function() if not done then done=true; return viewerItem end end end}}
+C_CooldownViewer={GetCooldownViewerCooldownInfo=function() return {spellID=203819} end}
+spikes:Update(); assert(rawequal(spikes.frame.count.text,SECRET), "Opaque countdown reaches center text")
+C_CooldownViewer.GetCooldownViewerCooldownInfo=function() return {spellID=999} end
+spikes:Update(); assert(spikes.frame.count.text=="", "Ignore recycled viewer entry")
+spikesRestricted=false; spikesAura={expirationTime=SECRET}
+spikes:Update(); assert(spikes.frame.arcs[1].lines[1].color[2]==1)
+combat=false; spikesAura=nil; furyValue=0; soulsValue=0
+addon:GetSettings().demonSpikes.combatOnly=true; spikes:Update(); assert(not spikes.frame:IsShown())
+spikes:StartPreview("missing"); assert(spikes.frame:IsShown() and spikes.frame.arcs[1].bounce:IsPlaying())
+combat=true; spikes.events.scripts.OnEvent(nil,"PLAYER_REGEN_DISABLED"); assert(not spikes.preview)
+combat=false; addon:GetSettings().demonSpikes.combatOnly=false
+spikes:StartPreview("healthy"); spec=577; spikes:Update(); assert(not spikes.preview and not spikes.frame:IsShown())
+spec=581; dead=true; spikes:Update(); assert(not spikes.frame:IsShown())
+dead=false; class="DEATHKNIGHT"; spikes:Update(); assert(not spikes.frame:IsShown())
+class="DEMONHUNTER"; spikes:Update(); assert(spikes.frame:IsShown())
+addon:SelectSettingsModule("demonSpikes"); assert(settingsWindow.pages.demonSpikes:IsShown())
+spikes:Disable(); assert(not spikes.frame:IsShown() and not next(spikes.events.events) and not spikes.events.scripts.OnUpdate)
+print("PASS: Vengeance gate, Fury/souls, buff duration, colors/bounce, secret display, viewer recycling, previews and lifecycle")
