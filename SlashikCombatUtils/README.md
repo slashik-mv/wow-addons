@@ -236,3 +236,19 @@ Restricted combat data is displayed without calculations where supported. Gray
 lines mean buff presence cannot be confirmed, so no missing-buff bounce is shown.
 Add Demon Spikes to Blizzard's buff icon/bar viewer for its countdown fallback.
 Soul Fragments use Soul Cleave's display count; unavailable resource values show ?.
+
+## Focus Alert Interrupt
+
+Disabled by default and configured per character in `/scu`. Alerts with a spoken
+phrase (default: Interrupt) or a selected sound when an enemy focus begins a cast
+or channel and the module considers your interrupt ready. Also checks when focus
+changes to an already-casting enemy or your interrupt becomes ready mid-cast.
+Includes a Test Alert button, built-in sounds, and LibSharedMedia sounds when that
+library is already loaded. Disable the separate FocusAlertInterrupt addon to avoid
+duplicate alerts.
+
+Adapted from the installed FocusAlertInterrupt addon. It uses class/spec interrupt
+lists, talent adjustments, and cooldown estimates based on observed interrupt
+casts when combat cooldown data is restricted. Readiness is not a guarantee of
+range or usability; restricted interruptibility may allow alerts for immune casts.
+Readable uninterruptible casts and friendly focus units are skipped.

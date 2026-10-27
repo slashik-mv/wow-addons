@@ -107,8 +107,9 @@ C_Timer = { NewTimer = function(_, callback)
     return { callback = callback, Cancel = function(self) self.cancelled = true end }
 end }
 
+SOUNDKIT={RAID_WARNING=1,READY_CHECK=2,ALARM_CLOCK_WARNING_3=3,IG_QUEST_LOG_OPEN=4,MAP_PING=5,LEVEL_UP=6}
 for _, file in ipairs({ "SettingsHelper.lua", "ModuleSettingsHelper.lua", "TrackerFrameHelper.lua",
-    "Modules/BoneShield.lua", "Modules/DeathAndDecay.lua", "Modules/Consumables.lua", "Modules/Beacons.lua", "Modules/AutoHealthPot.lua", "Modules/DemonSpikes.lua", "AddonSettingsFrameHelper.lua", "ConsumablesSettingsHelper.lua", "BeaconSettingsHelper.lua", "DemonSpikesSettingsHelper.lua", "AutoHealthPotSettingsHelper.lua", "MinimapButtonHelper.lua", "SlashikCombatUtils.lua" }) do
+    "Modules/BoneShield.lua", "Modules/DeathAndDecay.lua", "Modules/Consumables.lua", "Modules/Beacons.lua", "Modules/AutoHealthPot.lua", "Modules/DemonSpikes.lua", "Modules/FocusAlertInterrupt.lua", "AddonSettingsFrameHelper.lua", "ConsumablesSettingsHelper.lua", "BeaconSettingsHelper.lua", "DemonSpikesSettingsHelper.lua", "FocusInterruptSettingsHelper.lua", "AutoHealthPotSettingsHelper.lua", "MinimapButtonHelper.lua", "SlashikCombatUtils.lua" }) do
     assert(loadfile(file))("SlashikCombatUtils", addon)
 end
 local startup = frames[#frames]
@@ -594,7 +595,7 @@ settingsWindow.rows.consumables.down.scripts.OnClick()
 assert(addon:GetModuleDisplayOrder()[1] == "boneShield")
 addon:GetSettings().moduleOrder = { "unknown", "consumables", "consumables" }
 local cleanOrder = addon:GetModuleDisplayOrder()
-assert(cleanOrder[1] == "consumables" and cleanOrder[2] == "boneShield" and #cleanOrder == 6)
+assert(cleanOrder[1] == "consumables" and cleanOrder[2] == "boneShield" and #cleanOrder == 7)
 assert(addon.moduleOrder[1] == "boneShield", "Display ordering does not change startup order")
 print("PASS: saved module ordering, arrows, boundaries, stale entries and combat guard")
 
@@ -933,3 +934,59 @@ class="DEMONHUNTER"; spikes:Update(); assert(spikes.frame:IsShown())
 addon:SelectSettingsModule("demonSpikes"); assert(settingsWindow.pages.demonSpikes:IsShown())
 spikes:Disable(); assert(not spikes.frame:IsShown() and not next(spikes.events.events) and not spikes.events.scripts.OnUpdate)
 print("PASS: Vengeance gate, Fury/souls, buff duration, colors/bounce, secret display, viewer recycling, previews and lifecycle")
+
+local focus=addon.modules.focusInterrupt
+assert(not addon:IsModuleEnabled("focusInterrupt") and not focus.enabled)
+class,spec,combat="DEATHKNIGHT",250,false
+local now, enemy, cast, immune, spoken, sounded=100,true,nil,false,0,0
+function GetTime() return now end
+function UnitCanAttack() return enemy end
+function UnitCastingInfo() return cast,nil,nil,nil,nil,nil,nil,immune end
+function UnitChannelInfo() return nil end
+function IsPlayerSpell(id) return id==47528 end
+function IsSpellKnown() return false end
+function GetSpellBaseCooldown() return 15000 end
+C_Spell.GetSpellCooldown=function() return {startTime=0,duration=0} end
+C_ClassTalents=nil; C_Traits=nil
+Enum=Enum or {}; Enum.TtsVoiceType={Standard=0}
+C_TTSSettings={GetVoiceOptionID=function() return 0 end}
+C_VoiceChat={SpeakText=function(_,message) assert(message=="Interrupt"); spoken=spoken+1 end}
+function PlaySound() sounded=sounded+1 end
+addon:SetModuleEnabled("focusInterrupt",true)
+focus:Check(); assert(spoken==0)
+cast="Danger"; focus:Event("UNIT_SPELLCAST_START","focus"); focus:Check(); assert(spoken==1)
+focus:Check(); assert(spoken==1, "No repeated alert every update")
+now=102; focus:Event("UNIT_SPELLCAST_SUCCEEDED","player",nil,47528)
+focus:Event("UNIT_SPELLCAST_START","focus"); focus:Check(); assert(spoken==1,"Cooldown suppresses alert")
+now=117; focus:Check(); assert(spoken==2,"Ready mid-cast alerts")
+now=120; enemy=false; focus:Event("UNIT_SPELLCAST_START","focus"); focus:Check(); assert(spoken==2)
+enemy=true; immune=true; focus:Check(); assert(spoken==2,"Skip readable immune casts")
+immune=false; now=122; focus:Event("PLAYER_FOCUS_CHANGED"); focus:Check(); assert(spoken==3)
+addon:GetSettings().focusInterrupt.ttsMode=false; focus:TestAlert(); assert(sounded==1)
+focus:Event("UNIT_SPELLCAST_START","focus"); focus:Disable(); now=130; focus:Check()
+assert(spoken==3 and sounded==1 and not next(focus.events.events) and not focus.events.scripts.OnUpdate)
+function IsPlayerSpell() return false end
+focus:Enable(); focus:Check(); assert(sounded==1,"No known interrupt means no alerts")
+focus:Disable(); function IsPlayerSpell(id) return id==47528 end
+C_Spell.GetSpellCooldown=function() return {startTime=125,duration=15} end
+focus:Enable(); focus:Check(); assert(sounded==1,"Reload with active cooldown does not report ready")
+now=141; focus:Check(); assert(sounded==2)
+C_Spell.GetSpellCooldown=function() return {startTime=SECRET,duration=SECRET} end
+focus:Event("PLAYER_REGEN_ENABLED")
+focus:Event("UNIT_SPELLCAST_SUCCEEDED","player",nil,SECRET)
+addon:SelectSettingsModule("focusInterrupt"); assert(settingsWindow.pages.focusInterrupt:IsShown())
+focus:Disable()
+print("PASS: focus alerts, throttle, cooldown, focus changes, friendly/immune filtering, sound, disabled cleanup and secret guards")
+
+-- Channel starts and cancellation use the same alert path as normal casts.
+cast=nil; now=200
+C_Spell.GetSpellCooldown=function() return {startTime=0,duration=0} end
+function UnitChannelInfo() return "Channel",nil,nil,nil,nil,nil,false end
+focus:Enable(); focus:Event("UNIT_SPELLCAST_CHANNEL_START","focus"); focus:Check()
+assert(sounded==3,"Channel start alerts")
+function UnitChannelInfo() return nil end
+focus:Event("UNIT_SPELLCAST_CHANNEL_STOP","focus"); now=202; focus:Check()
+assert(sounded==3,"Stopped channels do not alert")
+focus:Event("UNIT_SPELLCAST_START","focus"); focus:Disable(); focus:TestAlert()
+assert(sounded==3,"Pending and test alerts respect disabled module")
+print("PASS: focus channel start/stop and disabled test alerts")
