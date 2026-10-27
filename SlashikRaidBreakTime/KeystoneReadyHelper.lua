@@ -16,16 +16,36 @@ local function refresh()
     end
     if not panel then
         panel = CreateFrame("Frame", "SlashikRaidBreakTimeKeystoneReadyFrame", UIParent, "BackdropTemplate")
-        panel:SetSize(270, 48)
+        panel:SetSize(270, 72)
         panel:SetFrameStrata("DIALOG")
         panel:SetClampedToScreen(true)
         panel:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" })
         panel:SetBackdropColor(0, 0, 0, 0.65)
         registerRaidBreakAlertPosition(panel, "keyReady")
+        panel:SetMovable(true)
+        panel:EnableMouse(true)
+        panel:RegisterForDrag("LeftButton")
+        local dragging = false
+        local function stopDragging(self)
+            if not dragging then return end
+            dragging = false
+            self:StopMovingOrSizing()
+            saveRaidBreakAlertPosition(self, "keyReady")
+        end
+        panel:SetScript("OnDragStart", function(self)
+            if InCombatLockdown() then return end
+            dragging = true
+            self:StartMoving()
+        end)
+        panel:SetScript("OnDragStop", stopDragging)
+        panel:SetScript("OnHide", stopDragging)
+        local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        title:SetPoint("TOP", 0, -10)
+        title:SetText("Dungeon Preparation")
         local function button(text, x, action)
             local control = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
             control:SetSize(120, 28)
-            control:SetPoint("LEFT", panel, "LEFT", x, 0)
+            control:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", x, 10)
             control:SetText(text)
             control:SetScript("OnClick", function()
                 -- Recheck eligibility at click time, including leadership and combat.
