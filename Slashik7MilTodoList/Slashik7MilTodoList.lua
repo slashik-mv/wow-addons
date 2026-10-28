@@ -31,6 +31,9 @@ events:SetScript("OnEvent", function(_, event, argument, isReloadingUi)
     if addon:HandleQuestTurnedIn(argument) and addon.window and addon.window:IsShown() then
       addon:RefreshWindow()
     end
+    if addon.recommendationsWindow and addon.recommendationsWindow:IsShown() then
+      addon:RefreshRecommendationsWindow()
+    end
   elseif addon.db then
     addon:CheckWeeklyReset()
     addon:RegisterCharacter(event == "PLAYER_LEVEL_UP" and argument or nil)
@@ -47,6 +50,17 @@ events:SetScript("OnEvent", function(_, event, argument, isReloadingUi)
     end
   end
 end)
+
+SLASH_SLASHIK7PLUS1 = "/7plus"
+SLASH_SLASHIK7PLUS2 = "/7+"
+SlashCmdList.SLASHIK7PLUS = function(message)
+  local command = message:match("^%s*(.-)%s*$"):lower()
+  if command == "debug" then
+    addon:PrintGoldWorldQuestDebug()
+  else
+    addon:ToggleRecommendationsStandalone()
+  end
+end
 
 SLASH_SLASHIK7MIL1 = "/7mil"
 SLASH_SLASHIK7MIL2 = "/s7mil"
@@ -65,6 +79,6 @@ SlashCmdList.SLASHIK7MIL = function(message)
   elseif command == "" then
     addon:ToggleWindow()
   else
-    print("|cffffd166Slashik7MilTodoList:|r /7mil - checklist; /7mil settings - options; /7mil position - center window.")
+    print("|cffffd166Slashik7MilTodoList:|r /7mil - checklist; /7plus - Midnight gold world quests; /7mil settings - options; /7mil position - center window.")
   end
 end

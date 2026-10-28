@@ -90,6 +90,11 @@ function addon:SetCashFlowWindowShown(shown)
   if not self.cashFlowWindow then self:CreateCashFlowWindow() end
   self.cashFlowWindow:SetShown(shown)
   if shown then self:RefreshCashFlowWindow() end
+  if self.recommendationsWindow and self.recommendationsWindow:IsShown()
+    and not self.recommendationsStandalone
+  then
+    self:AnchorRecommendationsWindow()
+  end
 end
 
 function addon:RefreshCashFlowWindow()
@@ -106,6 +111,227 @@ function addon:RefreshCashFlowWindow()
     if net > 0 then row.net:SetTextColor(0.35, 1, 0.35)
     elseif net < 0 then row.net:SetTextColor(1, 0.35, 0.35)
     else row.net:SetTextColor(1, 1, 1) end
+  end
+end
+
+function addon:AnchorRecommendationsWindow()
+  local panel = self.recommendationsWindow
+  if not panel or not self.window then return end
+  panel:ClearAllPoints()
+  panel:SetScale(self.window:GetScale())
+  local anchor = self.cashFlowWindow and self.cashFlowWindow:IsShown()
+    and self.cashFlowWindow or self.window
+  panel:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 4, 0)
+end
+
+function addon:CreateRecommendationsWindow()
+  local panel = CreateFrame("Frame", "Slashik7MilRecommendationsFrame", UIParent, "BackdropTemplate")
+  self.recommendationsWindow = panel
+  panel:SetSize(430, 570)
+  panel:SetFrameStrata("DIALOG")
+  panel:SetClampedToScreen(true)
+  panel:EnableMouse(true)
+  panel:SetBackdrop({
+    bgFile = "Interface\\Buttons\\WHITE8X8",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    edgeSize = 16,
+    insets = { left = 4, right = 4, top = 4, bottom = 4 },
+  })
+  panel:SetBackdropColor(0.035, 0.045, 0.075, 0.98)
+  panel:SetBackdropBorderColor(0.75, 0.58, 0.24)
+  Text(panel, "GameFontNormalLarge", 18, -18, 285, "Midnight gold world quests")
+  panel.character = Text(panel, "GameFontHighlightSmall", 18, -43, 300, "")
+  Text(panel, "GameFontDisableSmall", 18, -62, 390, "Active direct-gold world quests worth at least 800 gold")
+  local close = CreateFrame("Button", nil, panel, "UIPanelCloseButton")
+  close:SetPoint("TOPRIGHT", -4, -4)
+  close:SetScript("OnClick", function()
+    if not self.recommendationsStandalone then
+      self.db.settings.showRecommendations = false
+      if self.window and self.window.recommendationsToggle then
+        self.window.recommendationsToggle:SetChecked(false)
+      end
+    end
+    self.recommendationsStandalone = false
+    panel:Hide()
+  end)
+  local refresh = Button(panel, "Refresh", 72, 22, function()
+    self.recommendationRewardRetries = 0
+    self:RefreshRecommendationsWindow()
+  end)
+  refresh:SetPoint("TOPRIGHT", -42, -17)
+
+  panel.scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
+  panel.scroll:SetPoint("TOPLEFT", 18, -84)
+  panel.scroll:SetPoint("BOTTOMRIGHT", -32, 35)
+  panel.scrollChild = CreateFrame("Frame", nil, panel.scroll)
+  panel.scrollChild:SetSize(378, 451)
+  panel.scroll:SetScrollChild(panel.scrollChild)
+
+  panel.rows = {}
+  for index = 1, 5 do
+    local row = CreateFrame("Frame", nil, panel.scrollChild)
+    row:SetSize(378, 64)
+    row:SetPoint("TOPLEFT", 0, 0)
+    row:EnableMouse(true)
+    row.background = row:CreateTexture(nil, "BACKGROUND")
+    row.background:SetAllPoints()
+    row.background:SetColorTexture(0.11, 0.12, 0.16, index % 2 == 0 and 0.72 or 0.48)
+    row.title = Text(row, "GameFontNormal", 10, -8, 230, "")
+    row.status = Text(row, "GameFontHighlightSmall", 270, -8, 98, "")
+    row.status:SetJustifyH("RIGHT")
+    row.summary = Text(row, "GameFontHighlightSmall", 10, -29, 358, "")
+    row.questLines = {}
+    row:SetScript("OnEnter", function(currentRow)
+      local zone = currentRow.zoneData
+      if not zone then return end
+      GameTooltip:SetOwner(currentRow, "ANCHOR_LEFT")
+      GameTooltip:SetText(zone.name)
+      if #zone.goldQuests == 0 then
+        GameTooltip:AddLine("No active direct-gold world quests.", 0.65, 0.65, 0.65, true)
+      else
+        GameTooltip:AddLine(string.format("%d active gold world quest%s", #zone.goldQuests,
+          #zone.goldQuests == 1 and "" or "s"), 0.35, 1, 0.35)
+        for _, quest in ipairs(zone.goldQuests) do
+          GameTooltip:AddDoubleLine(quest.title,
+            C_CurrencyInfo.GetCoinTextureString(quest.money), 1, 1, 1, 1, 0.82, 0)
+        end
+      end
+      GameTooltip:Show()
+    end)
+    row:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    panel.rows[index] = row
+  end
+  panel.loading = Text(panel, "GameFontDisableSmall", 18, -548, 394, "")
+  panel.loading:SetJustifyH("CENTER")
+  panel:Hide()
+  table.insert(UISpecialFrames, "Slashik7MilRecommendationsFrame")
+  return panel
+end
+
+function addon:RefreshRecommendationsWindow()
+  local panel = self.recommendationsWindow
+  if not panel then return end
+  local name, realm = UnitFullName("player")
+  panel.character:SetText((name or "Current character") .. " - " .. (realm or GetRealmName()))
+  local ok, zones, loadingRewards = pcall(self.ScanGoldWorldQuestZones, self)
+  if not ok then
+    local errorText = tostring(zones)
+    zones = {}
+    for _, zoneKey in ipairs({ "eversong", "zulaman", "harandar", "voidstorm", "coiled" }) do
+      local zone = self.midnightZones[zoneKey]
+      table.insert(zones, {
+        key = zoneKey,
+        name = zone.name,
+        goldQuests = {},
+        goldQuestCount = 0,
+        totalGold = 0,
+        scanError = errorText,
+      })
+    end
+    loadingRewards = false
+  end
+  local firstScanError
+  local contentHeight = 0
+  for index, row in ipairs(panel.rows) do
+    local zone = zones[index]
+    row.zoneData = zone
+    if zone then
+      row.title:SetText(zone.name)
+      row.status:SetText(string.format("%d gold WQ%s", zone.goldQuestCount,
+        zone.goldQuestCount == 1 and "" or "s"))
+      if zone.scanError then
+        firstScanError = firstScanError or zone.scanError
+        row.status:SetText("Scan error")
+        row.status:SetTextColor(1, 0.35, 0.35)
+        row.summary:SetText("Blizzard API rejected this zone scan")
+      elseif zone.goldQuestCount > 0 then
+        row.status:SetTextColor(0.35, 1, 0.35)
+        row.summary:SetText("Total: " .. C_CurrencyInfo.GetCoinTextureString(zone.totalGold))
+      else
+        row.status:SetTextColor(0.55, 0.55, 0.55)
+        row.summary:SetText("No active gold world quests worth 800 gold or more")
+      end
+      for questIndex, quest in ipairs(zone.goldQuests) do
+        local line = row.questLines[questIndex]
+        if not line then
+          line = {
+            title = Text(row, "GameFontHighlightSmall", 10, -48 - (questIndex - 1) * 17, 255, ""),
+            money = Text(row, "GameFontHighlightSmall", 268, -48 - (questIndex - 1) * 17, 100, ""),
+          }
+          line.title:SetWordWrap(false)
+          line.money:SetJustifyH("RIGHT")
+          row.questLines[questIndex] = line
+        end
+        line.title:SetText(quest.title)
+        line.money:SetText(C_CurrencyInfo.GetCoinTextureString(quest.money))
+        line.title:Show()
+        line.money:Show()
+      end
+      for questIndex = #zone.goldQuests + 1, #row.questLines do
+        row.questLines[questIndex].title:Hide()
+        row.questLines[questIndex].money:Hide()
+      end
+      local rowHeight = zone.goldQuestCount > 0 and (55 + zone.goldQuestCount * 17) or 64
+      row:ClearAllPoints()
+      row:SetPoint("TOPLEFT", 0, -contentHeight)
+      row:SetHeight(rowHeight)
+      contentHeight = contentHeight + rowHeight + 4
+      row:Show()
+    else
+      row:Hide()
+    end
+  end
+  panel.scrollChild:SetHeight(math.max(contentHeight, 451))
+
+  local retries = self.recommendationRewardRetries or 0
+  if firstScanError then
+    panel.loading:SetText("Gold quest scan failed. Type /7plus debug to print details.")
+    self.lastGoldQuestScanError = firstScanError
+  elseif loadingRewards and retries < 5 then
+    self.lastGoldQuestScanError = nil
+    panel.loading:SetText("Loading world-quest reward data...")
+    self.recommendationRewardRetries = (self.recommendationRewardRetries or 0) + 1
+    C_Timer.After(0.75, function()
+      if panel:IsShown() then self:RefreshRecommendationsWindow() end
+    end)
+  elseif loadingRewards then
+    self.lastGoldQuestScanError = nil
+    panel.loading:SetText("Some reward data is unavailable. Press Refresh to retry.")
+  else
+    self.lastGoldQuestScanError = nil
+    panel.loading:SetText("")
+  end
+end
+
+function addon:SetRecommendationsWindowShown(shown, standalone)
+  local panel = self.recommendationsWindow
+  if not shown then
+    self.recommendationsStandalone = false
+    if panel then panel:Hide() end
+    return
+  end
+
+  panel = panel or self:CreateRecommendationsWindow()
+
+  self.recommendationsStandalone = standalone == true
+  panel:ClearAllPoints()
+  if self.recommendationsStandalone then
+    panel:SetScale(1)
+    panel:SetPoint("CENTER")
+  else
+    self:AnchorRecommendationsWindow()
+  end
+  self.recommendationRewardRetries = 0
+  panel:Show()
+  self:RefreshRecommendationsWindow()
+end
+
+function addon:ToggleRecommendationsStandalone()
+  local panel = self.recommendationsWindow
+  if panel and panel:IsShown() and self.recommendationsStandalone then
+    self:SetRecommendationsWindowShown(false)
+  else
+    self:SetRecommendationsWindowShown(true, true)
   end
 end
 
@@ -142,7 +368,12 @@ function addon:CreateWindow()
     self.db.position = { point = point, relativePoint = relativePoint, x = x, y = y }
   end
   titleBar:SetScript("OnDragStop", SavePosition)
-  frame:SetScript("OnHide", SavePosition)
+  frame:SetScript("OnHide", function()
+    SavePosition()
+    if self.recommendationsWindow and not self.recommendationsStandalone then
+      self.recommendationsWindow:Hide()
+    end
+  end)
   local icon = titleBar:CreateTexture(nil, "ARTWORK")
   icon:SetSize(42, 42)
   icon:SetPoint("TOPLEFT", 10, -8)
@@ -236,12 +467,28 @@ function addon:CreateWindow()
     self:SetCashFlowWindowShown(shown)
   end)
   frame.cashFlowToggle = cashFlowToggle
+  local recommendationsToggle = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
+  recommendationsToggle:SetSize(24, 24)
+  recommendationsToggle:SetPoint("RIGHT", cashFlowToggle, "LEFT", -108, 0)
+  recommendationsToggle:SetChecked(self.db.settings.showRecommendations)
+  local recommendationsLabel = recommendationsToggle:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  recommendationsLabel:SetPoint("LEFT", recommendationsToggle, "RIGHT", 2, 0)
+  recommendationsLabel:SetText("Gold quests")
+  recommendationsToggle:SetScript("OnClick", function(button)
+    local shown = button:GetChecked() == true
+    self.db.settings.showRecommendations = shown
+    self:SetRecommendationsWindowShown(shown, false)
+  end)
+  frame.recommendationsToggle = recommendationsToggle
   frame.resetLabel = Text(frame, "GameFontHighlightSmall", 22, -536, 740, "")
   frame:SetScript("OnShow", function()
     self:CheckWeeklyReset()
     self:ReconcileActiveTrackedQuests()
     self:RefreshWindow()
     self:SetCashFlowWindowShown(self.db.settings.showCashFlow)
+    if not self.recommendationsStandalone then
+      self:SetRecommendationsWindowShown(self.db.settings.showRecommendations, false)
+    end
   end)
 end
 

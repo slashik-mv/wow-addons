@@ -16,19 +16,27 @@ local AUTOMATIC_TASK_QUESTS = {
 
 -- Some capstone world quests have a wrapper ID and a separate activity ID.
 -- Keeping both IDs in one group prevents a single assignment filling two slots.
-local SPECIAL_ASSIGNMENTS = {
-  { key = "grandMagistersDrink", ids = { 92848, 92145 } },
-  { key = "shadeAndClaw", ids = { 92139 } },
-  { key = "oursOnceMore", ids = { 94866, 91796 } },
-  { key = "templeBroken", ids = { 94865, 91390 } },
-  { key = "huntersRegret", ids = { 94390 } },
-  { key = "pushBackTheLight", ids = { 94391, 93013 } },
-  { key = "agentsOfTheShield", ids = { 94795, 93244 } },
-  { key = "precisionExcision", ids = { 94743, 93438 } },
-  { key = "coiledDemandAndSupply", coiled = true, ids = { 95921, 96492 } },
-  { key = "coiledFaceTheSwarm", coiled = true, ids = { 95922, 96029 } },
-  { key = "coiledWraithWrath", coiled = true, ids = { 96307 } },
+addon.midnightZones = {
+  eversong = { name = "Eversong Woods", mapIDs = { 2395 } },
+  zulaman = { name = "Zul'Aman", mapIDs = { 2437 } },
+  harandar = { name = "Harandar", mapIDs = { 2413 } },
+  voidstorm = { name = "Voidstorm", mapIDs = { 2405, 2444 } },
+  coiled = { name = "Coiled Isle", mapIDs = { 2512 } },
 }
+local SPECIAL_ASSIGNMENTS = {
+  { key = "grandMagistersDrink", zone = "eversong", title = "The Grand Magister's Drink", ids = { 92848, 92145 } },
+  { key = "shadeAndClaw", zone = "eversong", title = "Shade and Claw", ids = { 92139 } },
+  { key = "oursOnceMore", zone = "zulaman", title = "Ours Once More!", ids = { 94866, 91796 } },
+  { key = "templeBroken", zone = "zulaman", title = "What Remains of a Temple Broken", ids = { 94865, 91390 } },
+  { key = "huntersRegret", zone = "harandar", title = "A Hunter's Regret", ids = { 94390 } },
+  { key = "pushBackTheLight", zone = "harandar", title = "Push Back the Light", ids = { 94391, 93013 } },
+  { key = "agentsOfTheShield", zone = "voidstorm", title = "Agents of the Shield", ids = { 94795, 93244 } },
+  { key = "precisionExcision", zone = "voidstorm", title = "Precision Excision", ids = { 94743, 93438 } },
+  { key = "coiledDemandAndSupply", zone = "coiled", title = "Demand and Supply", coiled = true, ids = { 95921, 96492 } },
+  { key = "coiledFaceTheSwarm", zone = "coiled", title = "Face the Swarm", coiled = true, ids = { 95922, 96029 } },
+  { key = "coiledWraithWrath", zone = "coiled", title = "Wraith Wrath", coiled = true, ids = { 96307 } },
+}
+addon.specialAssignments = SPECIAL_ASSIGNMENTS
 
 local QUEST_TASK, QUEST_ASSIGNMENT = {}, {}
 for taskID, questIDs in pairs(AUTOMATIC_TASK_QUESTS) do
