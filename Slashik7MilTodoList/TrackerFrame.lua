@@ -254,22 +254,51 @@ function addon:RefreshRecommendationsWindow()
       for questIndex, quest in ipairs(zone.goldQuests) do
         local line = row.questLines[questIndex]
         if not line then
+          local button = CreateFrame("Button", nil, row)
+          button:SetSize(362, 17)
+          button:SetPoint("TOPLEFT", 6, -43 - (questIndex - 1) * 17)
+          local highlight = button:CreateTexture(nil, "HIGHLIGHT")
+          highlight:SetAllPoints()
+          highlight:SetColorTexture(1, 0.82, 0, 0.15)
           line = {
-            title = Text(row, "GameFontHighlightSmall", 10, -48 - (questIndex - 1) * 17, 255, ""),
-            money = Text(row, "GameFontHighlightSmall", 268, -48 - (questIndex - 1) * 17, 100, ""),
+            button = button,
+            title = Text(button, "GameFontHighlightSmall", 4, -3, 251, ""),
+            money = Text(button, "GameFontHighlightSmall", 262, -3, 96, ""),
           }
           line.title:SetWordWrap(false)
           line.money:SetJustifyH("RIGHT")
+          button:SetScript("OnClick", function(currentButton)
+            if self:TrackGoldWorldQuest(currentButton.questID)
+              and PlaySound and SOUNDKIT
+            then
+              PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
+            end
+          end)
+          button:SetScript("OnEnter", function(currentButton)
+            GameTooltip:SetOwner(currentButton, "ANCHOR_RIGHT")
+            GameTooltip:SetText(currentButton.questTitle)
+            GameTooltip:AddDoubleLine("Reward",
+              C_CurrencyInfo.GetCoinTextureString(currentButton.questMoney),
+              1, 1, 1, 1, 0.82, 0)
+            local watched = QuestUtils_IsQuestWatched
+              and QuestUtils_IsQuestWatched(currentButton.questID)
+            GameTooltip:AddLine(watched and "Click to focus this tracked world quest."
+              or "Click to add this world quest to the objective tracker.",
+              0.35, 1, 0.35, true)
+            GameTooltip:Show()
+          end)
+          button:SetScript("OnLeave", function() GameTooltip:Hide() end)
           row.questLines[questIndex] = line
         end
+        line.button.questID = quest.questID
+        line.button.questTitle = quest.title
+        line.button.questMoney = quest.money
         line.title:SetText(quest.title)
         line.money:SetText(C_CurrencyInfo.GetCoinTextureString(quest.money))
-        line.title:Show()
-        line.money:Show()
+        line.button:Show()
       end
       for questIndex = #zone.goldQuests + 1, #row.questLines do
-        row.questLines[questIndex].title:Hide()
-        row.questLines[questIndex].money:Hide()
+        row.questLines[questIndex].button:Hide()
       end
       local rowHeight = zone.goldQuestCount > 0 and (55 + zone.goldQuestCount * 17) or 64
       row:ClearAllPoints()

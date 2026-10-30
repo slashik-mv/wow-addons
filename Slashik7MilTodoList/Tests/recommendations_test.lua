@@ -1,6 +1,7 @@
 -- Run from the addon directory with Lua 5.1 or newer.
 local addon = {}
-local completed, requested = {}, {}
+local completed, requested, watched = {}, {}, {}
+local superTrackedQuestID
 -- Blizzard can return quests from the wider map context. The returned mapID,
 -- not merely the map passed to GetQuestsOnMap, identifies the quest's zone.
 local mapQuests = {
@@ -55,7 +56,16 @@ C_QuestLog = {
   IsQuestFlaggedCompleted = function(questID) return completed[questID] == true end,
   GetTitleForQuestID = function(questID) return titles[questID] end,
   GetQuestRewardCurrencies = function(questID) return currencyRewards[questID] or {} end,
+  GetQuestWatchType = function(questID) return watched[questID] end,
+  AddWorldQuestWatch = function(questID, watchType)
+    watched[questID] = watchType
+    return true
+  end,
 }
+C_SuperTrack = {
+  SetSuperTrackedQuestID = function(questID) superTrackedQuestID = questID end,
+}
+Enum = { QuestWatchType = { Manual = 1 } }
 HaveQuestRewardData = function(questID) return rewardMoney[questID] ~= nil end
 GetQuestLogRewardMoney = function(questID) return rewardMoney[questID] or 0 end
 GetNumQuestLogRewards = function(questID) return itemRewards[questID] or 0 end
@@ -80,6 +90,10 @@ assert(zones[3].goldQuestCount == 1 and zones[4].goldQuestCount == 0
 assert(zones[2].goldQuests[1].questID == 20001,
   "quests returned for multiple maps are assigned only to their real zone")
 assert(loading and requested[10003], "missing reward data is requested")
+assert(addon:TrackGoldWorldQuest(10001), "a gold world quest can be tracked")
+assert(watched[10001] == Enum.QuestWatchType.Manual,
+  "click tracking uses Blizzard's manual world quest watch type")
+assert(superTrackedQuestID == 10001, "the clicked world quest becomes super tracked")
 
 completed[10002] = true
 zones = addon:ScanGoldWorldQuestZones()

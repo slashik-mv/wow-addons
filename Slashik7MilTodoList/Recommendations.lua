@@ -128,6 +128,21 @@ function addon:ScanGoldWorldQuestZones()
   return results, loadingRewards
 end
 
+function addon:TrackGoldWorldQuest(questID)
+  if type(questID) ~= "number" or not C_QuestLog.AddWorldQuestWatch then return false end
+
+  local watchType = Enum and Enum.QuestWatchType and Enum.QuestWatchType.Manual or 1
+  local tracked = C_QuestLog.GetQuestWatchType
+    and C_QuestLog.GetQuestWatchType(questID) ~= nil
+  if not tracked then
+    tracked = C_QuestLog.AddWorldQuestWatch(questID, watchType) == true
+  end
+  if tracked and C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID then
+    C_SuperTrack.SetSuperTrackedQuestID(questID)
+  end
+  return tracked
+end
+
 function addon:PrintGoldWorldQuestDebug()
   print("|cffffd166Slashik7MilTodoList Midnight gold quest debug|r")
   if self.lastGoldQuestScanError then
