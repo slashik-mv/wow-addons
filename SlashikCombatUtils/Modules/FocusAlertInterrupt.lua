@@ -5,6 +5,7 @@ local function secret(value) return issecretvalue and issecretvalue(value) end
 -- Adapted from the user's installed FocusAlertInterrupt; cooldowns may be estimated.
 -- Fallback sounds when LibSharedMedia is absent
 local BUILTIN_SOUNDS = {
+    { name = "Auction Window Close", file = 567499 },
     { name = "Raid Warning",   id = SOUNDKIT.RAID_WARNING          },
     { name = "Ready Check",    id = SOUNDKIT.READY_CHECK           },
     { name = "Alarm",          id = SOUNDKIT.ALARM_CLOCK_WARNING_3 },
@@ -60,21 +61,28 @@ local cachedCD              = {}
 --  Sound helpers
 -- ---------------------------------------------------------------
 local function GetSoundList()
-    if LSM then return LSM:List("sound") end
-    local t = {}
-    for _, s in ipairs(BUILTIN_SOUNDS) do t[#t+1] = s.name end
+    local t, seen = {}, {}
+    for _, s in ipairs(BUILTIN_SOUNDS) do t[#t+1] = s.name; seen[s.name] = true end
+    if LSM then
+        for _, name in ipairs(LSM:List("sound")) do
+            if not seen[name] then t[#t+1] = name; seen[name] = true end
+        end
+    end
     return t
 end
 
 local function PlayAlertSound(name)
     if LSM then
-        local path = LSM:Fetch("sound", name)
+        local path = LSM:Fetch("sound", name, true)
         if path then PlaySoundFile(path, "Master"); return end
     end
     for _, s in ipairs(BUILTIN_SOUNDS) do
-        if s.name == name then PlaySound(s.id, "Master"); return end
+        if s.name == name then
+            if s.file then PlaySoundFile(s.file, "Master") else PlaySound(s.id, "Master") end
+            return
+        end
     end
-    PlaySound(BUILTIN_SOUNDS[1].id, "Master")
+    PlaySoundFile(BUILTIN_SOUNDS[1].file, "Master")
 end
 
 -- ---------------------------------------------------------------

@@ -28,12 +28,12 @@ function addon:GetSettings()
     if settings.modules.demonSpikes == nil then settings.modules.demonSpikes = false end
     if settings.modules.consumables == nil then settings.modules.consumables = false end
     if settings.modules.autoHealthPot == nil then settings.modules.autoHealthPot = false end
-    if settings.modules.focusInterrupt == nil then settings.modules.focusInterrupt = false end
+    if settings.modules.focusInterrupt == nil then settings.modules.focusInterrupt = true end
     if type(settings.focusInterrupt) ~= "table" then settings.focusInterrupt = {} end
     local focus = settings.focusInterrupt
-    focus.ttsMode = focus.ttsMode ~= false
+    focus.ttsMode = focus.ttsMode == true
     if type(focus.ttsMessage) ~= "string" or focus.ttsMessage:match("^%s*$") then focus.ttsMessage = "Interrupt" end
-    if type(focus.soundName) ~= "string" then focus.soundName = "Raid Warning" end
+    if type(focus.soundName) ~= "string" then focus.soundName = "Auction Window Close" end
     if type(settings.autoHealthPot) ~= "table" then settings.autoHealthPot = {} end
     for _, key in ipairs({"selected", "order", "ownedBodies"}) do
         if type(settings.autoHealthPot[key]) ~= "table" then settings.autoHealthPot[key] = {} end

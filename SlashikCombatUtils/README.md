@@ -239,8 +239,10 @@ Soul Fragments use Soul Cleave's display count; unavailable resource values show
 
 ## Focus Alert Interrupt
 
-Disabled by default and configured per character in `/scu`. Alerts with a spoken
-phrase (default: Interrupt) or a selected sound when an enemy focus begins a cast
+Enabled by default and configured per character in `/scu`. Defaults to the
+Auction Window Close sound with Speak a phrase unchecked. Existing saved choices
+are preserved. The selected sound is highlighted and marked in the list.
+Alerts with a spoken phrase (default text: Interrupt) or a selected sound when an enemy focus begins a cast
 or channel and the module considers your interrupt ready. Also checks when focus
 changes to an already-casting enemy or your interrupt becomes ready mid-cast.
 Includes a Test Alert button, built-in sounds, and LibSharedMedia sounds when that

@@ -8,6 +8,7 @@ addon:RegisterModuleSettings("focusInterrupt",function(panel)
     end
     local function editable() return addon:CanEdit() and addon:IsModuleEnabled("focusInterrupt") end
     label("Alerts for focus casts/channels, including when your interrupt becomes ready.\nCombat cooldowns may be estimated; interruptibility can be restricted.\nDisable the standalone FocusAlertInterrupt addon to avoid duplicate alerts.",8,-94)
+    local refreshSelection
     local mode=CreateFrame("CheckButton",nil,panel,"UICheckButtonTemplate")
     mode:SetSize(26,26); mode:SetPoint("TOPLEFT",8,-150)
     mode.label=label("Speak a phrase (uncheck to play a sound)",40,-157)
@@ -16,6 +17,7 @@ addon:RegisterModuleSettings("focusInterrupt",function(panel)
     mode:SetScript("OnClick",function(self)
         if editable() then addon:GetSettings().focusInterrupt.ttsMode=self:GetChecked()==true end
         addon:RefreshSettingsWindow()
+        if refreshSelection then refreshSelection() end
     end)
     label("Spoken phrase:",12,-192)
     local box=CreateFrame("EditBox",nil,panel,"InputBoxTemplate")
@@ -35,24 +37,37 @@ addon:RegisterModuleSettings("focusInterrupt",function(panel)
     local scroll=CreateFrame("ScrollFrame",nil,panel,"UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT",12,-247); scroll:SetSize(440,145)
     local content=CreateFrame("Frame",nil,scroll); content:SetWidth(430); scroll:SetScrollChild(content)
+    chosen:SetFontObject("GameFontNormal")
     local rows={}
+    refreshSelection=function()
+        local settings=addon:GetSettings().focusInterrupt
+        chosen:SetText((settings.ttsMode and "Sound preview: " or "Playing sound: ")..settings.soundName)
+        chosen:SetTextColor(1,0.82,0)
+        for _, row in ipairs(rows) do
+            local selected=row.soundName==settings.soundName
+            row.selection:SetShown(selected)
+            row:SetText(selected and ("|cffffd100Selected: "..row.soundName.."|r") or row.soundName)
+        end
+    end
     local function refresh()
         box:SetText(addon:GetSettings().focusInterrupt.ttsMessage)
-        chosen:SetText("Selected sound: "..addon:GetSettings().focusInterrupt.soundName)
         local sounds=module:GetSounds(); content:SetHeight(math.max(1,#sounds*25))
         for i,name in ipairs(sounds) do
             local row=rows[i]
             if not row then
                 row=CreateFrame("Button",nil,content,"UIPanelButtonTemplate")
                 row:SetSize(420,23); row:SetPoint("TOPLEFT",0,-(i-1)*25)
+                row.selection=row:CreateTexture(nil,"OVERLAY")
+                row.selection:SetAllPoints(); row.selection:SetColorTexture(1,0.72,0,0.35)
                 row.module="focusInterrupt"; addon:RegisterSettingsControl(row); rows[i]=row
             end
-            row:SetText(name); row:Show()
+            row.soundName=name; row:Show()
             row:SetScript("OnClick",function()
-                if editable() then addon:GetSettings().focusInterrupt.soundName=name; chosen:SetText("Selected sound: "..name); module:PreviewSound(name) end
+                if editable() then addon:GetSettings().focusInterrupt.soundName=name; refreshSelection(); module:PreviewSound(name) end
             end)
         end
         for i=#sounds+1,#rows do rows[i]:Hide() end
+        refreshSelection()
     end
     local test=CreateFrame("Button",nil,panel,"UIPanelButtonTemplate")
     test:SetSize(140,26); test:SetPoint("TOPLEFT",12,-420); test:SetText("Test Alert")

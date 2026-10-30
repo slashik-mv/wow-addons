@@ -1,3 +1,5 @@
+function IsPlayerSpell() return false end
+function IsSpellKnown() return false end
 -- Run from the addon directory with Lua 5.1+. No game files are modified.
 unpack = unpack or table.unpack
 local frames, addon = {}, {}
@@ -13,7 +15,7 @@ local function object(name)
     return o
 end
 for _, method in ipairs({ "SetSize", "SetPoint", "SetFrameStrata", "SetClampedToScreen", "SetMovable",
-    "RegisterForDrag", "SetFont", "SetTextColor", "SetAllPoints", "SetThickness", "SetStartPoint",
+    "RegisterForDrag", "SetFontObject", "SetFont", "SetTextColor", "SetAllPoints", "SetThickness", "SetStartPoint",
     "SetEndPoint", "SetLooping", "SetOffset", "SetDuration", "SetSmoothing", "SetBackdrop",
     "SetBackdropColor", "SetBackdropBorderColor", "ClearAllPoints", "StartMoving", "StopMovingOrSizing",
     "SetFrameLevel", "RegisterForClicks", "SetHighlightTexture", "SetHyperlinksEnabled", "SetWidth", "SetHeight", "SetScrollChild", "SetJustifyH", "SetAutoFocus", "SetNumeric", "SetMaxLetters", "ClearFocus", "SetAlpha" }) do
@@ -936,7 +938,11 @@ spikes:Disable(); assert(not spikes.frame:IsShown() and not next(spikes.events.e
 print("PASS: Vengeance gate, Fury/souls, buff duration, colors/bounce, secret display, viewer recycling, previews and lifecycle")
 
 local focus=addon.modules.focusInterrupt
-assert(not addon:IsModuleEnabled("focusInterrupt") and not focus.enabled)
+focus:Disable()
+assert(addon:IsModuleEnabled("focusInterrupt"))
+assert(addon:GetSettings().focusInterrupt.ttsMode==false)
+assert(addon:GetSettings().focusInterrupt.soundName=="Auction Window Close")
+addon:GetSettings().focusInterrupt.ttsMode=true
 class,spec,combat="DEATHKNIGHT",250,false
 local now, enemy, cast, immune, spoken, sounded=100,true,nil,false,0,0
 function GetTime() return now end
@@ -952,6 +958,7 @@ Enum=Enum or {}; Enum.TtsVoiceType={Standard=0}
 C_TTSSettings={GetVoiceOptionID=function() return 0 end}
 C_VoiceChat={SpeakText=function(_,message) assert(message=="Interrupt"); spoken=spoken+1 end}
 function PlaySound() sounded=sounded+1 end
+function PlaySoundFile(file) assert(file==567499); sounded=sounded+1 end
 addon:SetModuleEnabled("focusInterrupt",true)
 focus:Check(); assert(spoken==0)
 cast="Danger"; focus:Event("UNIT_SPELLCAST_START","focus"); focus:Check(); assert(spoken==1)
