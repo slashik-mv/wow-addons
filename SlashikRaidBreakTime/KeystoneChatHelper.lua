@@ -11,7 +11,7 @@ function whisperGuildKeystoneOwner(name, mapID, level)
 end
 
 -- Called directly by a Post button click to announce a known keystone in /g.
-function postKeystoneToGuild(mapID, level)
+function postKeystoneToGuild(mapID, level, owner)
     if not isRaidBreakModuleEnabled("keystones") then return end
     if not IsInGuild() then
         print("SlashikRaidBreakTime: Join a guild to post a keystone in guild chat.")
@@ -25,4 +25,5 @@ function postKeystoneToGuild(mapID, level)
     local recruitment = getMissingPartyRolesText()
     if recruitment then message = message .. " - " .. recruitment end
     C_ChatInfo.SendChatMessage(message, "GUILD")
+    rememberGuildPostedKeystone(owner, mapID, level)
 end

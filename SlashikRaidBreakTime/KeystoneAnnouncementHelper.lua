@@ -1,4 +1,5 @@
 local PREFIX = "SRBT_KEY_GO"
+local SELECTION_PREFIX = "SRBT_KEY_SELECT"
 local COOLDOWN = 5
 local nextSendAt = 0
 local lastReceived = {}
@@ -34,6 +35,19 @@ function canAnnounceKeystoneToParty()
     return partyChannel() ~= nil and GetTime() >= nextSendAt
 end
 
+-- Guild recruitment selects a key without showing the immediate Let's Go alert.
+function rememberGuildPostedKeystone(owner, mapID, level)
+    if not isRaidBreakModuleEnabled("keystones") then return end
+    if type(owner) ~= "string" or owner == "" then return end
+    local unit = partyUnit(owner)
+    if not unit or not UnitIsConnected(unit) or not dungeonName(mapID, level) then return end
+    saveSelectedKeystone(owner, mapID, level)
+    local channel = partyChannel()
+    if channel then
+        C_ChatInfo.SendAddonMessage(SELECTION_PREFIX, string.format("%d:%d:%s", mapID, level, owner), channel)
+    end
+end
+
 -- Called by Let's Go or a completed roll: send chat once and sync the visual separately.
 function announceKeystoneToParty(owner, mapID, level)
     if not isRaidBreakModuleEnabled("keystones") then return end
@@ -61,21 +75,26 @@ events:SetScript("OnEvent", function(_, event, prefix, message, channel, sender)
     if event ~= "PLAYER_LOGIN" and not isRaidBreakModuleEnabled("keystones") then return end
     if event == "PLAYER_LOGIN" then
         C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
+        C_ChatInfo.RegisterAddonMessagePrefix(SELECTION_PREFIX)
     elseif event == "GROUP_ROSTER_UPDATE" then
         for name in pairs(lastReceived) do
             if not partyUnit(name) then lastReceived[name] = nil end
         end
     elseif event == "CHAT_MSG_ADDON" then
-        if prefix ~= PREFIX or not partyChannel() or channel ~= partyChannel() then return end
+        if (prefix ~= PREFIX and prefix ~= SELECTION_PREFIX) or not partyChannel() or channel ~= partyChannel() then return end
         if sender == unitFullName("player") or not partyUnit(sender) then return end
         if type(message) ~= "string" or #message > 255 then return end
         local mapID, level, owner = message:match("^(%d+):(%d+):([^:]+)$")
         mapID, level = tonumber(mapID), tonumber(level)
         local dungeon = dungeonName(mapID, level)
         if not dungeon or not partyUnit(owner) then return end
-        if GetTime() < (lastReceived[sender] or 0) then return end
-        lastReceived[sender] = GetTime() + COOLDOWN
+        if prefix == PREFIX then
+            if GetTime() < (lastReceived[sender] or 0) then return end
+            lastReceived[sender] = GetTime() + COOLDOWN
+        end
         saveSelectedKeystone(owner, mapID, level)
-        showRaidBreakKeystoneAnnouncement(dungeon, level, Ambiguate(owner, "none"), false, mapID)
+        if prefix == PREFIX then
+            showRaidBreakKeystoneAnnouncement(dungeon, level, Ambiguate(owner, "none"), false, mapID)
+        end
     end
 end)

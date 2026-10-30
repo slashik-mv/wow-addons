@@ -251,7 +251,7 @@ function createKeystoneHelper(openGuildKeys)
                     local member = row.member
                     if not member or fullName(member.unit) ~= member.name or not UnitIsConnected(member.unit) then return end
                     local key = results[member.name]
-                    if key then postKeystoneToGuild(key.mapID, key.level) end
+                    if key then postKeystoneToGuild(key.mapID, key.level, member.name) end
                 end)
                 row.go = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
                 row.go:SetSize(74, 22)
