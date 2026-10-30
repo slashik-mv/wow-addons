@@ -40,12 +40,21 @@ end
 
 local function ActiveWorldQuestIDs(zone)
   local questIDs, seen = {}, {}
+  local zoneMapIDs = {}
+  for _, mapID in ipairs(zone.mapIDs) do zoneMapIDs[mapID] = true end
+
   for _, mapID in ipairs(zone.mapIDs) do
     local quests = C_TaskQuest.GetQuestsOnMap(mapID)
     if type(quests) == "table" then
       for _, info in ipairs(quests) do
         local questID = QuestID(info)
-        if questID and not seen[questID] then
+        local questMapID = info.mapID
+        if not questMapID and questID and C_TaskQuest.GetQuestZoneID then
+          questMapID = C_TaskQuest.GetQuestZoneID(questID)
+        end
+        local isWorldQuest = questID and (not QuestUtils_IsQuestWorldQuest
+          or QuestUtils_IsQuestWorldQuest(questID))
+        if questID and zoneMapIDs[questMapID] and isWorldQuest and not seen[questID] then
           seen[questID] = true
           table.insert(questIDs, questID)
         end
