@@ -5,6 +5,8 @@ addon.defaults = {
   lockWindow = false,
   showCashFlow = false,
   showRecommendations = false,
+  unlockCashFlow = false,
+  unlockRecommendations = false,
 }
 addon.tasks = {
   { id = "abundance", label = "Abundance\n20,000 points" },

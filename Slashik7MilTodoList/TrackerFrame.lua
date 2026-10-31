@@ -1,5 +1,5 @@
 local _, addon = ...
-local ROW_HEIGHT, NAME_WIDTH, COLUMN_WIDTH = 38, 350, 146
+local ROW_HEIGHT, NAME_WIDTH, COLUMN_WIDTH = 38, 350, 124
 local TABLE_WIDTH = NAME_WIDTH + #addon.tasks * COLUMN_WIDTH
 local WINDOW_WIDTH = TABLE_WIDTH + 60
 local GOLD_GOAL = 7000000 * 10000
@@ -26,12 +26,84 @@ local function CashFlowMoney(amount, signed)
   return prefix .. C_CurrencyInfo.GetCoinTextureString(math.abs(amount))
 end
 
+local function SavePanelPosition(owner, panel, key)
+  panel:StopMovingOrSizing()
+  local point, _, relativePoint, x, y = panel:GetPoint()
+  owner.db[key] = { point = point, relativePoint = relativePoint, x = x, y = y }
+end
+
+local function RestorePanelPosition(owner, panel, key)
+  local position = owner.db[key]
+  if not position then return false end
+  panel:ClearAllPoints()
+  panel:SetPoint(position.point, UIParent, position.relativePoint, position.x, position.y)
+  return true
+end
+
+local function DetachPanelAtCurrentPosition(owner, panel, key)
+  local centerX, centerY = panel:GetCenter()
+  if not centerX or not centerY then return end
+  local panelScale = panel:GetEffectiveScale()
+  local parentScale = UIParent:GetEffectiveScale()
+  centerX = centerX * panelScale / parentScale
+  centerY = centerY * panelScale / parentScale
+  panel:ClearAllPoints()
+  panel:SetPoint("CENTER", UIParent, "BOTTOMLEFT", centerX, centerY)
+  SavePanelPosition(owner, panel, key)
+end
+
+local function AddPanelMoveControl(owner, panel, settingKey, positionKey, onLock)
+  panel:SetMovable(true)
+  panel:EnableMouse(true)
+
+  local dragArea = CreateFrame("Frame", nil, panel)
+  dragArea:SetPoint("TOPLEFT", 8, -8)
+  dragArea:SetPoint("TOPRIGHT", -150, -8)
+  dragArea:SetHeight(55)
+  dragArea:EnableMouse(true)
+  dragArea:RegisterForDrag("LeftButton")
+  dragArea:SetScript("OnDragStart", function()
+    if owner.db.settings[settingKey] then panel:StartMoving() end
+  end)
+  dragArea:SetScript("OnDragStop", function()
+    if owner.db.settings[settingKey] then
+      SavePanelPosition(owner, panel, positionKey)
+    end
+  end)
+
+  local toggle = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+  toggle:SetSize(22, 22)
+  toggle:SetFrameLevel(dragArea:GetFrameLevel() + 1)
+  toggle:SetHitRectInsets(0, -48, 0, 0)
+  toggle:SetChecked(owner.db.settings[settingKey])
+  local label = toggle:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  label:SetPoint("LEFT", toggle, "RIGHT", 1, 0)
+  label:SetText("Unlock")
+  toggle:SetScript("OnEnter", function(button)
+    GameTooltip:SetOwner(button, "ANCHOR_BOTTOM")
+    GameTooltip:SetText("Unlock window")
+    GameTooltip:AddLine("Unlock to drag this window. Its position will be saved.", 1, 1, 1, true)
+    GameTooltip:Show()
+  end)
+  toggle:SetScript("OnLeave", function() GameTooltip:Hide() end)
+  toggle:SetScript("OnClick", function(button)
+    owner.db.settings[settingKey] = button:GetChecked() == true
+    if owner.db.settings[settingKey] then
+      DetachPanelAtCurrentPosition(owner, panel, positionKey)
+    else
+      onLock()
+    end
+  end)
+  panel.moveToggle = toggle
+  return toggle
+end
+
 function addon:CreateCashFlowWindow()
-  local panel = CreateFrame("Frame", nil, self.window, "BackdropTemplate")
+  local panel = CreateFrame("Frame", "Slashik7MilCashFlowFrame", UIParent, "BackdropTemplate")
   self.cashFlowWindow = panel
   panel:SetSize(315, 570)
-  panel:SetPoint("TOPLEFT", self.window, "TOPRIGHT", 4, 0)
-  panel:SetFrameLevel(self.window:GetFrameLevel() + 5)
+  panel:SetFrameStrata("DIALOG")
+  panel:SetClampedToScreen(true)
   panel:SetBackdrop({
     bgFile = "Interface\\Buttons\\WHITE8X8",
     edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -40,13 +112,25 @@ function addon:CreateCashFlowWindow()
   })
   panel:SetBackdropColor(0.035, 0.045, 0.075, 0.98)
   panel:SetBackdropBorderColor(0.75, 0.58, 0.24)
-  Text(panel, "GameFontNormalLarge", 18, -18, 275, "Cash flow")
+  Text(panel, "GameFontNormalLarge", 18, -18, 110, "Cash flow")
   Text(panel, "GameFontDisableSmall", 18, -43, 275, "Characters and Warband Bank combined")
+  local close = CreateFrame("Button", nil, panel, "UIPanelCloseButton")
+  close:SetPoint("TOPRIGHT", -4, -4)
+  close:SetScript("OnClick", function()
+    if not self.cashFlowStandalone then
+      self.db.settings.showCashFlow = false
+      if self.window and self.window.cashFlowToggle then
+        self.window.cashFlowToggle:SetChecked(false)
+      end
+    end
+    self.cashFlowStandalone = false
+    panel:Hide()
+  end)
   local reset = Button(panel, "Reset", 70, 22, function()
     self:ResetCashFlow()
     self:RefreshCashFlowWindow()
   end)
-  reset:SetPoint("TOPRIGHT", -18, -16)
+  reset:SetPoint("TOPRIGHT", -42, -16)
   reset:SetScript("OnEnter", function(button)
     GameTooltip:SetOwner(button, "ANCHOR_LEFT")
     GameTooltip:SetText("Reset cash-flow statistics")
@@ -54,6 +138,10 @@ function addon:CreateCashFlowWindow()
     GameTooltip:Show()
   end)
   reset:SetScript("OnLeave", function() GameTooltip:Hide() end)
+  local move = AddPanelMoveControl(self, panel, "unlockCashFlow", "cashFlowPosition", function()
+    if not self.cashFlowStandalone then self:AnchorCashFlowWindow() end
+  end)
+  move:SetPoint("TOPRIGHT", reset, "TOPLEFT", -48, 1)
 
   panel.rows = {}
   local periods = {
@@ -83,17 +171,63 @@ function addon:CreateCashFlowWindow()
     spending:SetTextColor(1, 0.35, 0.35)
     panel.rows[period.id] = { earnings = earnings, spending = spending, net = net }
   end
+  panel:SetScript("OnHide", function()
+    if self.recommendationsWindow and self.recommendationsWindow:IsShown()
+      and not self.recommendationsStandalone
+    then
+      self:AnchorRecommendationsWindow()
+    end
+  end)
+  panel:Hide()
+  table.insert(UISpecialFrames, "Slashik7MilCashFlowFrame")
   return panel
 end
 
-function addon:SetCashFlowWindowShown(shown)
-  if not self.cashFlowWindow then self:CreateCashFlowWindow() end
-  self.cashFlowWindow:SetShown(shown)
+function addon:AnchorCashFlowWindow()
+  local panel = self.cashFlowWindow
+  if not panel or not self.window then return end
+  panel:SetScale(self.window:GetScale())
+  if self.db.settings.unlockCashFlow
+    and RestorePanelPosition(self, panel, "cashFlowPosition")
+  then return end
+  panel:ClearAllPoints()
+  panel:SetPoint("TOPLEFT", self.window, "TOPRIGHT", 4, 0)
+end
+
+function addon:SetCashFlowWindowShown(shown, standalone)
+  local panel = self.cashFlowWindow
+  if not shown then
+    self.cashFlowStandalone = false
+    if panel then panel:Hide() end
+    return
+  end
+
+  panel = panel or self:CreateCashFlowWindow()
+  self.cashFlowStandalone = standalone == true
+  panel:SetScale(self.cashFlowStandalone and 1 or self.window:GetScale())
+  if self.cashFlowStandalone then
+    if not RestorePanelPosition(self, panel, "cashFlowPosition") then
+      panel:ClearAllPoints()
+      panel:SetPoint("CENTER")
+    end
+  else
+    self:AnchorCashFlowWindow()
+  end
+  panel:Show()
   if shown then self:RefreshCashFlowWindow() end
   if self.recommendationsWindow and self.recommendationsWindow:IsShown()
     and not self.recommendationsStandalone
   then
     self:AnchorRecommendationsWindow()
+  end
+end
+
+function addon:ToggleCashFlowStandalone()
+  local panel = self.cashFlowWindow
+  if panel and panel:IsShown() and self.cashFlowStandalone then
+    self:SetCashFlowWindowShown(false)
+  else
+    self:SetCashFlowWindowShown(true, true)
   end
 end
 
@@ -119,7 +253,11 @@ function addon:AnchorRecommendationsWindow()
   if not panel or not self.window then return end
   panel:ClearAllPoints()
   panel:SetScale(self.window:GetScale())
+  if self.db.settings.unlockRecommendations
+    and RestorePanelPosition(self, panel, "recommendationsPosition")
+  then return end
   local anchor = self.cashFlowWindow and self.cashFlowWindow:IsShown()
+    and not self.cashFlowStandalone
     and self.cashFlowWindow or self.window
   panel:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 4, 0)
 end
@@ -139,7 +277,7 @@ function addon:CreateRecommendationsWindow()
   })
   panel:SetBackdropColor(0.035, 0.045, 0.075, 0.98)
   panel:SetBackdropBorderColor(0.75, 0.58, 0.24)
-  Text(panel, "GameFontNormalLarge", 18, -18, 285, "Midnight gold world quests")
+  Text(panel, "GameFontNormalLarge", 18, -18, 215, "Midnight gold world quests")
   panel.character = Text(panel, "GameFontHighlightSmall", 18, -43, 300, "")
   Text(panel, "GameFontDisableSmall", 18, -62, 390, "Active direct-gold world quests worth at least 800 gold")
   local close = CreateFrame("Button", nil, panel, "UIPanelCloseButton")
@@ -159,6 +297,10 @@ function addon:CreateRecommendationsWindow()
     self:RefreshRecommendationsWindow()
   end)
   refresh:SetPoint("TOPRIGHT", -42, -17)
+  local move = AddPanelMoveControl(self, panel, "unlockRecommendations", "recommendationsPosition", function()
+    if not self.recommendationsStandalone then self:AnchorRecommendationsWindow() end
+  end)
+  move:SetPoint("TOPRIGHT", refresh, "TOPLEFT", -48, 1)
 
   panel.scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
   panel.scroll:SetPoint("TOPLEFT", 18, -84)
@@ -346,7 +488,9 @@ function addon:SetRecommendationsWindowShown(shown, standalone)
   panel:ClearAllPoints()
   if self.recommendationsStandalone then
     panel:SetScale(1)
-    panel:SetPoint("CENTER")
+    if not RestorePanelPosition(self, panel, "recommendationsPosition") then
+      panel:SetPoint("CENTER")
+    end
   else
     self:AnchorRecommendationsWindow()
   end
@@ -399,6 +543,9 @@ function addon:CreateWindow()
   titleBar:SetScript("OnDragStop", SavePosition)
   frame:SetScript("OnHide", function()
     SavePosition()
+    if self.cashFlowWindow and not self.cashFlowStandalone then
+      self.cashFlowWindow:Hide()
+    end
     if self.recommendationsWindow and not self.recommendationsStandalone then
       self.recommendationsWindow:Hide()
     end
@@ -485,11 +632,11 @@ function addon:CreateWindow()
   settings:SetPoint("BOTTOMRIGHT", -22, 18)
   local cashFlowToggle = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
   cashFlowToggle:SetSize(24, 24)
-  cashFlowToggle:SetPoint("RIGHT", settings, "LEFT", -78, 0)
+  cashFlowToggle:SetPoint("RIGHT", settings, "LEFT", -165, 0)
   cashFlowToggle:SetChecked(self.db.settings.showCashFlow)
   local cashFlowLabel = cashFlowToggle:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   cashFlowLabel:SetPoint("LEFT", cashFlowToggle, "RIGHT", 2, 0)
-  cashFlowLabel:SetText("Cash flow")
+  cashFlowLabel:SetText("Cash flow |cff66ccff(command: /7cash)|r")
   cashFlowToggle:SetScript("OnClick", function(button)
     local shown = button:GetChecked() == true
     self.db.settings.showCashFlow = shown
@@ -498,11 +645,11 @@ function addon:CreateWindow()
   frame.cashFlowToggle = cashFlowToggle
   local recommendationsToggle = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
   recommendationsToggle:SetSize(24, 24)
-  recommendationsToggle:SetPoint("RIGHT", cashFlowToggle, "LEFT", -108, 0)
+  recommendationsToggle:SetPoint("RIGHT", cashFlowToggle, "LEFT", -210, 0)
   recommendationsToggle:SetChecked(self.db.settings.showRecommendations)
   local recommendationsLabel = recommendationsToggle:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   recommendationsLabel:SetPoint("LEFT", recommendationsToggle, "RIGHT", 2, 0)
-  recommendationsLabel:SetText("Gold quests")
+  recommendationsLabel:SetText("Gold quests |cff66ccff(command: /7wq)|r")
   recommendationsToggle:SetScript("OnClick", function(button)
     local shown = button:GetChecked() == true
     self.db.settings.showRecommendations = shown
@@ -514,7 +661,9 @@ function addon:CreateWindow()
     self:CheckWeeklyReset()
     self:ReconcileActiveTrackedQuests()
     self:RefreshWindow()
-    self:SetCashFlowWindowShown(self.db.settings.showCashFlow)
+    if not self.cashFlowStandalone then
+      self:SetCashFlowWindowShown(self.db.settings.showCashFlow, false)
+    end
     if not self.recommendationsStandalone then
       self:SetRecommendationsWindowShown(self.db.settings.showRecommendations, false)
     end

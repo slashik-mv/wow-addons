@@ -62,6 +62,17 @@ SlashCmdList.SLASHIK7PLUS = function(message)
   end
 end
 
+SLASH_SLASHIK7CASH1 = "/7cash"
+SlashCmdList.SLASHIK7CASH = function()
+  addon:ToggleCashFlowStandalone()
+end
+
+SLASH_SLASHIK7QUESTS1 = "/7quests"
+SLASH_SLASHIK7QUESTS2 = "/7wq"
+SlashCmdList.SLASHIK7QUESTS = function()
+  addon:ToggleRecommendationsStandalone()
+end
+
 SLASH_SLASHIK7MIL1 = "/7mil"
 SLASH_SLASHIK7MIL2 = "/s7mil"
 SLASH_SLASHIK7MIL3 = "/slashik7mil"
@@ -79,6 +90,6 @@ SlashCmdList.SLASHIK7MIL = function(message)
   elseif command == "" then
     addon:ToggleWindow()
   else
-    print("|cffffd166Slashik7MilTodoList:|r /7mil - checklist; /7plus - Midnight gold world quests; /7mil settings - options; /7mil position - center window.")
+    print("|cffffd166Slashik7MilTodoList:|r /7 - checklist; /7cash - cash flow; /7quests or /7wq - gold world quests; /7mil settings - options; /7mil position - center window.")
   end
 end

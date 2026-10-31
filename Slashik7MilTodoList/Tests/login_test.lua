@@ -23,6 +23,14 @@ addon.CreateWindow = function(self)
   self.window = { Show = function() shown = true end, IsShown = function() return shown end }
 end
 assert(loadfile('Slashik7MilTodoList.lua'))('Slashik7MilTodoList', addon)
+local cashCommands, questCommands = 0, 0
+addon.ToggleCashFlowStandalone = function() cashCommands = cashCommands + 1 end
+addon.ToggleRecommendationsStandalone = function() questCommands = questCommands + 1 end
+SlashCmdList.SLASHIK7CASH()
+SlashCmdList.SLASHIK7QUESTS()
+assert(cashCommands == 1 and questCommands == 1, 'standalone panel commands are registered')
+assert(SLASH_SLASHIK7CASH1 == '/7cash')
+assert(SLASH_SLASHIK7QUESTS1 == '/7quests' and SLASH_SLASHIK7QUESTS2 == '/7wq')
 local function emit(event, a, b) handler(nil, event, a, b) end
 local function flush() for _, callback in ipairs(pending) do callback() end; pending = {} end
 emit('ADDON_LOADED', 'Slashik7MilTodoList')
