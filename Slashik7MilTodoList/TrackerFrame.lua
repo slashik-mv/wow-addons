@@ -26,6 +26,24 @@ local function CashFlowMoney(amount, signed)
   return prefix .. C_CurrencyInfo.GetCoinTextureString(math.abs(amount))
 end
 
+local function ConfirmCashFlowReset(owner)
+  local dialogName = "SLASHIK7MIL_RESET_CASH_FLOW"
+  StaticPopupDialogs[dialogName] = {
+    text = "Reset all cash-flow statistics?\n\nEarnings, spending, and net income will be erased. Current gold balances and weekly checklist progress will not change.",
+    button1 = YES,
+    button2 = NO,
+    OnAccept = function()
+      owner:ResetCashFlow()
+      owner:RefreshCashFlowWindow()
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    showAlert = true,
+  }
+  StaticPopup_Show(dialogName)
+end
+
 local function SavePanelPosition(owner, panel, key)
   panel:StopMovingOrSizing()
   local point, _, relativePoint, x, y = panel:GetPoint()
@@ -127,8 +145,7 @@ function addon:CreateCashFlowWindow()
     panel:Hide()
   end)
   local reset = Button(panel, "Reset", 70, 22, function()
-    self:ResetCashFlow()
-    self:RefreshCashFlowWindow()
+    ConfirmCashFlowReset(self)
   end)
   reset:SetPoint("TOPRIGHT", -42, -16)
   reset:SetScript("OnEnter", function(button)
@@ -202,8 +219,11 @@ function addon:SetCashFlowWindowShown(shown, standalone)
     return
   end
 
+  local isStandalone = standalone == true
+  if isStandalone then self.db.settings.unlockCashFlow = true end
   panel = panel or self:CreateCashFlowWindow()
-  self.cashFlowStandalone = standalone == true
+  self.cashFlowStandalone = isStandalone
+  panel.moveToggle:SetChecked(self.db.settings.unlockCashFlow)
   panel:SetScale(self.cashFlowStandalone and 1 or self.window:GetScale())
   if self.cashFlowStandalone then
     if not RestorePanelPosition(self, panel, "cashFlowPosition") then
@@ -482,9 +502,12 @@ function addon:SetRecommendationsWindowShown(shown, standalone)
     return
   end
 
+  local isStandalone = standalone == true
+  if isStandalone then self.db.settings.unlockRecommendations = true end
   panel = panel or self:CreateRecommendationsWindow()
 
-  self.recommendationsStandalone = standalone == true
+  self.recommendationsStandalone = isStandalone
+  panel.moveToggle:SetChecked(self.db.settings.unlockRecommendations)
   panel:ClearAllPoints()
   if self.recommendationsStandalone then
     panel:SetScale(1)
