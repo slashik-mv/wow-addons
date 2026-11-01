@@ -2,7 +2,7 @@
 ## Title: Slashik Raid Break Time
 ## Notes: Shows a synced raid-break timer with a random illustration.
 ## Author: Slashik
-## Version: 2.39
+## Version: 2.40
 ## SavedVariables: SlashikRaidBreakTimeDB
 ## IconTexture: Interface\AddOns\SlashikRaidBreakTime\addonIcon
 
@@ -14,6 +14,7 @@ SettingsHelper.lua
 ModuleSettingsHelper.lua
 AlertPositionHelper.lua
 KeystoneReadyHelper.lua
+KeystoneAutoSlotHelper.lua
 AddonSettingsFrameHelper.lua
 MinimapButtonHelper.lua
 BreakTimerFrameHelper.lua
