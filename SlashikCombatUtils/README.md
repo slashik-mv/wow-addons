@@ -254,3 +254,28 @@ lists, talent adjustments, and cooldown estimates based on observed interrupt
 casts when combat cooldown data is restricted. Readiness is not a guarantee of
 range or usability; restricted interruptibility may allow alerts for immune casts.
 Readable uninterruptible casts and friendly focus units are skipped.
+
+## Battle Ress and Lust
+
+Disabled by default, with warband-wide settings in `/scu`. The enable switch,
+visibility, position and scale are shared across characters for this module only.
+The first character loaded after upgrading supplies the initial shared settings;
+other modules and sidebar ordering remain per-character. Show battle resurrection,
+lust, or both. Uses Rebirth's shared battle-resurrection charge data (including the
+next recharge timer) and your own Sated / Exhaustion aura, like BResLustTracker.
+Lust Ready means your character has no detected lockout; it does not promise a
+group member can cast lust. Outside content with shared charges, only the battle-res icon is shown. Restricted timers show ? rather than guessing readiness.
+
+Includes dungeon, raid, other-zone and combat-only visibility, scale and X/Y
+position settings, and a draggable preview with center-relative coordinates.
+Closing settings or entering combat ends the preview. No standalone addon is
+required; disable BResLustTracker if you do not want duplicate displays.
+
+### Module settings scope
+
+`ModuleConfig.lua` lists each module's `scope` (`character` or `warband`) and
+`enabledByDefault`. Settings migration and enable/disable use this metadata;
+Battle Ress and Lust is currently the only warband module. Adding another
+warband module requires a config entry, not a special case in `SetModuleEnabled`.
+Existing shared values are preserved; newly shared modules initialize from the
+first character loaded. Unlisted modules remain character-specific and opt-in.

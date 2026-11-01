@@ -13,7 +13,9 @@ end
 
 function addon:SetModuleEnabled(key, enabled)
     if not self.modules[key] or not self:CanEdit() then return false end
-    self:GetSettings().modules[key] = enabled == true
+    local settings = self:GetSettings()
+    if self:IsWarbandModule(key) then settings[key].enabled = enabled == true end
+    settings.modules[key] = enabled == true
     self:RefreshModule(key)
     return true
 end

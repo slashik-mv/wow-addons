@@ -22,13 +22,28 @@ function addon:GetSettings()
     end
     local settings = db.settings
     if type(settings.modules) ~= "table" then settings.modules = {} end
-    -- Preserve the original trackers' historical defaults; new modules opt in.
-    if settings.modules.boneShield == nil then settings.modules.boneShield = true end
-    if settings.modules.beacons == nil then settings.modules.beacons = true end
-    if settings.modules.demonSpikes == nil then settings.modules.demonSpikes = false end
-    if settings.modules.consumables == nil then settings.modules.consumables = false end
-    if settings.modules.autoHealthPot == nil then settings.modules.autoHealthPot = false end
-    if settings.modules.focusInterrupt == nil then settings.modules.focusInterrupt = true end
+    if type(SlashikCombatUtilsWarbandDB) ~= "table" then SlashikCombatUtilsWarbandDB = {} end
+    local shared = SlashikCombatUtilsWarbandDB
+    for key, config in pairs(self.moduleConfig) do
+        if settings.modules[key] == nil then settings.modules[key] = config.enabledByDefault == true end
+        if self:IsWarbandModule(key) then
+            -- Seed once from the first character loaded after upgrading. Preserve
+            -- the existing shared storage layout and all previously saved values.
+            if type(shared[key]) ~= "table" then
+                shared[key] = type(settings[key]) == "table" and copySettings(settings[key]) or {}
+                shared[key].enabled = settings.modules[key] == true
+            end
+            shared[key].enabled = shared[key].enabled == true
+            settings[key] = shared[key]
+            settings.modules[key] = shared[key].enabled
+        end
+    end
+    local battle = settings.battleResLust
+    for _, key in ipairs({"showRes", "showLust", "showInDungeon", "showInRaid", "showInWorld"}) do battle[key] = battle[key] ~= false end
+    battle.combatOnly = battle.combatOnly == true
+    battle.x = number(battle.x, 250, -10000, 10000)
+    battle.y = number(battle.y, 0, -10000, 10000)
+    battle.scale = number(battle.scale, 1, 0.5, 3)
     if type(settings.focusInterrupt) ~= "table" then settings.focusInterrupt = {} end
     local focus = settings.focusInterrupt
     focus.ttsMode = focus.ttsMode == true

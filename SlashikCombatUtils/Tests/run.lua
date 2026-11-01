@@ -15,7 +15,7 @@ local function object(name)
     return o
 end
 for _, method in ipairs({ "SetSize", "SetPoint", "SetFrameStrata", "SetClampedToScreen", "SetMovable",
-    "RegisterForDrag", "SetFontObject", "SetFont", "SetTextColor", "SetAllPoints", "SetThickness", "SetStartPoint",
+    "SetHideCountdownNumbers", "RegisterForDrag", "SetFontObject", "SetFont", "SetTextColor", "SetAllPoints", "SetThickness", "SetStartPoint",
     "SetEndPoint", "SetLooping", "SetOffset", "SetDuration", "SetSmoothing", "SetBackdrop",
     "SetBackdropColor", "SetBackdropBorderColor", "ClearAllPoints", "StartMoving", "StopMovingOrSizing",
     "SetFrameLevel", "RegisterForClicks", "SetHighlightTexture", "SetHyperlinksEnabled", "SetWidth", "SetHeight", "SetScrollChild", "SetJustifyH", "SetAutoFocus", "SetNumeric", "SetMaxLetters", "ClearFocus", "SetAlpha" }) do
@@ -110,8 +110,8 @@ C_Timer = { NewTimer = function(_, callback)
 end }
 
 SOUNDKIT={RAID_WARNING=1,READY_CHECK=2,ALARM_CLOCK_WARNING_3=3,IG_QUEST_LOG_OPEN=4,MAP_PING=5,LEVEL_UP=6}
-for _, file in ipairs({ "SettingsHelper.lua", "ModuleSettingsHelper.lua", "TrackerFrameHelper.lua",
-    "Modules/BoneShield.lua", "Modules/DeathAndDecay.lua", "Modules/Consumables.lua", "Modules/Beacons.lua", "Modules/AutoHealthPot.lua", "Modules/DemonSpikes.lua", "Modules/FocusAlertInterrupt.lua", "AddonSettingsFrameHelper.lua", "ConsumablesSettingsHelper.lua", "BeaconSettingsHelper.lua", "DemonSpikesSettingsHelper.lua", "FocusInterruptSettingsHelper.lua", "AutoHealthPotSettingsHelper.lua", "MinimapButtonHelper.lua", "SlashikCombatUtils.lua" }) do
+for _, file in ipairs({ "ModuleConfig.lua", "SettingsHelper.lua", "ModuleSettingsHelper.lua", "TrackerFrameHelper.lua",
+    "Modules/BoneShield.lua", "Modules/DeathAndDecay.lua", "Modules/Consumables.lua", "Modules/Beacons.lua", "Modules/AutoHealthPot.lua", "Modules/DemonSpikes.lua", "Modules/FocusAlertInterrupt.lua", "Modules/BattleResLust.lua", "AddonSettingsFrameHelper.lua", "ConsumablesSettingsHelper.lua", "BeaconSettingsHelper.lua", "DemonSpikesSettingsHelper.lua", "FocusInterruptSettingsHelper.lua", "BattleResLustSettingsHelper.lua", "AutoHealthPotSettingsHelper.lua", "MinimapButtonHelper.lua", "SlashikCombatUtils.lua" }) do
     assert(loadfile(file))("SlashikCombatUtils", addon)
 end
 local startup = frames[#frames]
@@ -597,7 +597,7 @@ settingsWindow.rows.consumables.down.scripts.OnClick()
 assert(addon:GetModuleDisplayOrder()[1] == "boneShield")
 addon:GetSettings().moduleOrder = { "unknown", "consumables", "consumables" }
 local cleanOrder = addon:GetModuleDisplayOrder()
-assert(cleanOrder[1] == "consumables" and cleanOrder[2] == "boneShield" and #cleanOrder == 7)
+assert(cleanOrder[1] == "consumables" and cleanOrder[2] == "boneShield" and #cleanOrder == 8)
 assert(addon.moduleOrder[1] == "boneShield", "Display ordering does not change startup order")
 print("PASS: saved module ordering, arrows, boundaries, stale entries and combat guard")
 
@@ -997,3 +997,75 @@ assert(sounded==3,"Stopped channels do not alert")
 focus:Event("UNIT_SPELLCAST_START","focus"); focus:Disable(); focus:TestAlert()
 assert(sounded==3,"Pending and test alerts respect disabled module")
 print("PASS: focus channel start/stop and disabled test alerts")
+
+-- Battle Ress and Lust uses shared charges and the player's lockout only.
+function methods:Clear() self.cooldown = nil end
+function methods:SetCooldown(start, duration, rate) self.cooldown = {start, duration, rate} end
+local battle=addon.modules.battleResLust
+assert(not addon:IsModuleEnabled("battleResLust") and not battle.enabled)
+local location, charges, lockout="party", {currentCharges=1,maxCharges=3,cooldownStartTime=190,cooldownDuration=600}, nil
+function GetInstanceInfo() return "Test", location end
+C_Spell.GetSpellCharges=function(id) assert(id==20484); return charges end
+C_UnitAuras.GetPlayerAuraBySpellID=function(id) if id==57724 then return lockout end end
+combat=false; now=200
+addon:SetModuleEnabled("battleResLust",true)
+assert(battle.frame.res.count.text==1 and battle.frame.res.timer.text=="9:50")
+assert(battle.frame.lust.timer.text=="Ready")
+lockout={expirationTime=772,duration=600,icon=123}
+battle:SyncLust(); battle:Update()
+assert(battle.frame.lust.timer.text=="9:32" and battle.frame.lust.icon.texture==123)
+charges.currentCharges=0; battle:Update(); assert(battle.frame.res.count.text==0)
+charges.currentCharges=3; battle:Update(); assert(battle.frame.res.timer.text=="Ready")
+charges=nil; battle:Update()
+assert(battle.frame.res.timer.text=="" and battle.frame.res.count.text=="" and battle.frame.res.label.text=="" and battle.frame.res:IsShown())
+charges={currentCharges=SECRET,maxCharges=SECRET,cooldownStartTime=SECRET,cooldownDuration=SECRET,chargeModRate=SECRET}
+lockout={expirationTime=SECRET,duration=SECRET,icon=123}
+battle:SyncLust(); battle:Update()
+assert(battle.frame.res.label.text=="Res:" and battle.frame.res.count.text==SECRET and battle.frame.res.timer.text=="?" and battle.frame.lust.timer.text=="?")
+local bs=addon:GetSettings().battleResLust
+bs.showRes=false; battle:Update(); assert(not battle.frame.res:IsShown() and battle.frame.lust:IsShown() and battle.frame.height==48)
+bs.showLust=false; battle:Update(); assert(not battle.frame:IsShown())
+bs.showRes=true; bs.showLust=true; bs.showInDungeon=false; battle:Update(); assert(not battle.frame:IsShown())
+location="raid"; battle:Update(); assert(battle.frame:IsShown())
+bs.showInRaid=false; battle:Update(); assert(not battle.frame:IsShown())
+location="none"; battle:Update(); assert(battle.frame:IsShown())
+bs.combatOnly=true; battle:Update(); assert(not battle.frame:IsShown())
+battle:StartPreview(); assert(battle.frame:IsShown() and battle.frame.res.timer.text=="7:29")
+combat=true; battle:Update(); assert(not battle.preview and not battle.frame.mouse)
+combat=false; bs.combatOnly=false
+lockout=nil; battle:SyncLust(); battle:Update(); assert(battle.frame.lust.timer.text=="Ready")
+C_UnitAuras.GetPlayerAuraBySpellID=function() error("restricted") end
+battle:SyncLust(); battle:Update(); assert(battle.frame.lust.timer.text=="?")
+addon:SelectSettingsModule("battleResLust"); assert(settingsWindow.pages.battleResLust:IsShown())
+battle:Disable(); assert(not battle.frame:IsShown() and not next(battle.events.events) and not battle.events.scripts.OnUpdate)
+print("PASS: battle res charges/recharge, lust lockout, restrictions, visibility choices, preview and cleanup")
+
+-- Only Battle Ress and Lust shares settings; first character seeds migration.
+SlashikCombatUtilsWarbandDB=nil
+SlashikCombatUtilsCharDB={settings={modules={battleResLust=true,consumables=true},battleResLust={x=321,scale=1.5,showLust=false}}}
+local firstCharacter=SlashikCombatUtilsCharDB
+local first=addon:GetSettings()
+assert(first.battleResLust.x==321 and addon:IsModuleEnabled("battleResLust"))
+SlashikCombatUtilsCharDB={settings={modules={battleResLust=false,consumables=false},battleResLust={x=999}}}
+local second=addon:GetSettings()
+assert(second.battleResLust.x==321 and second.battleResLust.scale==1.5 and not second.battleResLust.showLust)
+assert(addon:IsModuleEnabled("battleResLust") and not addon:IsModuleEnabled("consumables"))
+second.battleResLust.x=123
+addon:SetModuleEnabled("battleResLust",false)
+SlashikCombatUtilsCharDB=firstCharacter
+assert(addon:GetSettings().battleResLust.x==123 and not addon:IsModuleEnabled("battleResLust"))
+assert(addon:IsModuleEnabled("consumables"))
+print("PASS: warband battle res migration, shared settings and enable switch, other module isolation")
+
+-- A second shared module works solely by changing metadata, without name checks.
+addon.moduleConfig.testModule={scope="warband",enabledByDefault=false}
+addon:GetSettings()
+addon:SetModuleEnabled("testModule",true)
+addon:GetSettings().testModule.value=42
+SlashikCombatUtilsCharDB={settings={modules={testModule=false},testModule={value=99}}}
+assert(addon:IsModuleEnabled("testModule") and addon:GetSettings().testModule.value==42)
+addon:SetModuleEnabled("testModule",false)
+SlashikCombatUtilsCharDB=firstCharacter
+assert(not addon:IsModuleEnabled("testModule") and not addon:IsModuleEnabled("battleResLust"))
+assert(addon:IsModuleEnabled("consumables"))
+print("PASS: metadata routes a second warband module without special-case names")
