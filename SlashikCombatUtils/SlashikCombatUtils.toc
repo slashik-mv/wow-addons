@@ -2,7 +2,7 @@
 ## Title: Slashik Combat Utils
 ## Notes: Modular combat trackers, starting with Blood Death Knight Bone Shield.
 ## Author: Slashik
-## Version: 1.17
+## Version: 1.18
 ## SavedVariables: SlashikCombatUtilsDB, SlashikCombatUtilsWarbandDB
 ## SavedVariablesPerCharacter: SlashikCombatUtilsCharDB
 ## IconTexture: Interface\AddOns\SlashikCombatUtils\addonIcon

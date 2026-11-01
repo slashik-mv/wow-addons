@@ -74,7 +74,7 @@ function module:CreateDisplay()
     if self.frame then return end
     local frame = CreateFrame("Frame", "SlashikCombatUtilsBeaconReminder", UIParent)
     frame:SetSize(140, 90)
-    frame:SetFrameStrata("HIGH")
+    frame:SetFrameStrata("LOW")
     frame:SetClampedToScreen(true)
     self.frame, self.icons = frame, {}
     for i, id in ipairs(self.spells) do

@@ -50,7 +50,7 @@ function module:CreateDisplay()
     if self.frame then return end
     local frame = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
     self.frame = frame
-    frame:SetSize(180, 104); frame:SetFrameStrata("HIGH"); frame:SetClampedToScreen(true)
+    frame:SetSize(180, 104); frame:SetFrameStrata("LOW"); frame:SetClampedToScreen(true)
     frame:SetMovable(true); frame:RegisterForDrag("LeftButton"); frame:EnableMouse(false)
     frame.res = row(frame, 136080); frame.res.label:SetText("Res:")
     frame.lust = row(frame, 136012)
