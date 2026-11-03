@@ -3,7 +3,7 @@ function createRaidBreakTimeFrame()
     local frame = CreateFrame("Frame", "SlashikRaidBreakTimeFrame", UIParent, "BackdropTemplate")
     frame:SetSize(500, 270)
     frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-    frame:SetFrameStrata("HIGH")
+    frame:SetFrameStrata("LOW") -- Keep the raid-break window below the world map.
     frame:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark" })
     frame:SetBackdropColor(0, 0, 0, 0.82)
     frame:Hide()

@@ -17,7 +17,7 @@ local function refresh()
     if not panel then
         panel = CreateFrame("Frame", "SlashikRaidBreakTimeKeystoneReadyFrame", UIParent, "BackdropTemplate")
         panel:SetSize(270, 72)
-        panel:SetFrameStrata("DIALOG")
+        panel:SetFrameStrata("LOW") -- Keep dungeon preparation controls below the world map.
         panel:SetClampedToScreen(true)
         panel:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" })
         panel:SetBackdropColor(0, 0, 0, 0.65)

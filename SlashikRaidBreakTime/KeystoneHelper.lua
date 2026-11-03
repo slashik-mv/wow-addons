@@ -188,7 +188,7 @@ function createKeystoneHelper(openGuildKeys)
             window.compact = SlashikRaidBreakTimeDB and SlashikRaidBreakTimeDB.compactKeystones == true or false
             window.layout = createKeystoneLayoutHelper(window)
             window.layout:restorePosition()
-            window:SetFrameStrata("DIALOG")
+            window:SetFrameStrata("LOW") -- Keep the world map and standard UI windows above this panel.
             window:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark" })
             window:SetBackdropColor(0, 0, 0, 0.95)
             window:SetMovable(true)
