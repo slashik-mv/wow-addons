@@ -137,7 +137,7 @@ function createGuildKeystoneHelper()
             window:Hide()
             window:SetSize(850, 390)
             window:SetClampedToScreen(true)
-            window:SetFrameStrata("LOW") -- Match the party window and stay below the world map.
+            window:SetFrameStrata("HIGH")
             window:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark" })
             window:SetBackdropColor(0, 0, 0, 0.95)
             window.compact = SlashikRaidBreakTimeDB and SlashikRaidBreakTimeDB.compactGuildKeystones == true or false
