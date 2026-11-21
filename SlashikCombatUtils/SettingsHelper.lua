@@ -70,6 +70,13 @@ function addon:GetSettings()
     spikes.x = number(spikes.x, 0, -10000, 10000)
     spikes.y = number(spikes.y, -100, -10000, 10000)
     spikes.scale = number(spikes.scale, 1, 0.5, 3)
+    if type(settings.ironfur) ~= "table" then settings.ironfur = {} end
+    local iron = settings.ironfur
+    iron.bounce = iron.bounce ~= false
+    iron.combatOnly = iron.combatOnly == true
+    iron.x = number(iron.x, 0, -10000, 10000)
+    iron.y = number(iron.y, -100, -10000, 10000)
+    iron.scale = number(iron.scale, 1, 0.5, 3)
     local bone = settings.boneShield
     bone.combatOnly = bone.combatOnly == true
     bone.showDeathAndDecay = bone.showDeathAndDecay ~= false

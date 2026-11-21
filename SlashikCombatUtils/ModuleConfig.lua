@@ -7,6 +7,7 @@ addon.moduleConfig = {
     consumables    = { scope = "character", enabledByDefault = false },
     beacons        = { scope = "character", enabledByDefault = true },
     autoHealthPot  = { scope = "character", enabledByDefault = false },
+    ironfur        = { scope = "character", enabledByDefault = false },
     demonSpikes    = { scope = "character", enabledByDefault = false },
     focusInterrupt = { scope = "character", enabledByDefault = true },
     battleResLust  = { scope = "warband",   enabledByDefault = false },

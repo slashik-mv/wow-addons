@@ -111,7 +111,7 @@ end }
 
 SOUNDKIT={RAID_WARNING=1,READY_CHECK=2,ALARM_CLOCK_WARNING_3=3,IG_QUEST_LOG_OPEN=4,MAP_PING=5,LEVEL_UP=6}
 for _, file in ipairs({ "ModuleConfig.lua", "SettingsHelper.lua", "ModuleSettingsHelper.lua", "TrackerFrameHelper.lua",
-    "Modules/BoneShield.lua", "Modules/DeathAndDecay.lua", "Modules/Consumables.lua", "Modules/Beacons.lua", "Modules/AutoHealthPot.lua", "Modules/DemonSpikes.lua", "Modules/FocusAlertInterrupt.lua", "Modules/BattleResLust.lua", "AddonSettingsFrameHelper.lua", "ConsumablesSettingsHelper.lua", "BeaconSettingsHelper.lua", "DemonSpikesSettingsHelper.lua", "FocusInterruptSettingsHelper.lua", "BattleResLustSettingsHelper.lua", "AutoHealthPotSettingsHelper.lua", "MinimapButtonHelper.lua", "SlashikCombatUtils.lua" }) do
+    "Modules/BoneShield.lua", "Modules/DeathAndDecay.lua", "Modules/Consumables.lua", "Modules/Beacons.lua", "Modules/AutoHealthPot.lua", "Modules/DemonSpikes.lua", "Modules/Ironfur.lua", "Modules/FocusAlertInterrupt.lua", "Modules/BattleResLust.lua", "AddonSettingsFrameHelper.lua", "ConsumablesSettingsHelper.lua", "BeaconSettingsHelper.lua", "DemonSpikesSettingsHelper.lua", "IronfurSettingsHelper.lua", "FocusInterruptSettingsHelper.lua", "BattleResLustSettingsHelper.lua", "AutoHealthPotSettingsHelper.lua", "MinimapButtonHelper.lua", "SlashikCombatUtils.lua" }) do
     assert(loadfile(file))("SlashikCombatUtils", addon)
 end
 local startup = frames[#frames]
@@ -597,7 +597,7 @@ settingsWindow.rows.consumables.down.scripts.OnClick()
 assert(addon:GetModuleDisplayOrder()[1] == "boneShield")
 addon:GetSettings().moduleOrder = { "unknown", "consumables", "consumables" }
 local cleanOrder = addon:GetModuleDisplayOrder()
-assert(cleanOrder[1] == "consumables" and cleanOrder[2] == "boneShield" and #cleanOrder == 8)
+assert(cleanOrder[1] == "consumables" and cleanOrder[2] == "boneShield" and #cleanOrder == 9)
 assert(addon.moduleOrder[1] == "boneShield", "Display ordering does not change startup order")
 print("PASS: saved module ordering, arrows, boundaries, stale entries and combat guard")
 
@@ -1069,3 +1069,56 @@ SlashikCombatUtilsCharDB=firstCharacter
 assert(not addon:IsModuleEnabled("testModule") and not addon:IsModuleEnabled("battleResLust"))
 assert(addon:IsModuleEnabled("consumables"))
 print("PASS: metadata routes a second warband module without special-case names")
+
+-- Guardian Ironfur: thresholds, independent resources and opaque combat displays.
+local iron=addon.modules.ironfur
+assert(not addon:IsModuleEnabled("ironfur") and addon.moduleConfig.ironfur.scope=="character")
+class,spec,dead,combat="DRUID",104,false,false
+now=300
+local ironAura, ironRestricted, rageValue=nil,false,65
+C_Secrets.ShouldSpellAuraBeSecret=function(id) assert(id==192081); return ironRestricted end
+C_UnitAuras.GetPlayerAuraBySpellID=function(id) assert(id==192081); return ironAura end
+function UnitPower(unit,power) assert(unit=="player" and power==1); return rageValue end
+BuffIconCooldownViewer=nil; BuffBarCooldownViewer=nil
+C_UnitAuras.GetAuraApplicationDisplayCount=nil
+addon:SetModuleEnabled("ironfur",true)
+assert(iron.frame:IsShown() and iron.frame.count.text==0 and iron.frame.rightTimer.text==65)
+assert(iron.frame.arcs[1].bounce:IsPlaying())
+for _,count in ipairs({1,2,5}) do
+    ironAura={applications=count,expirationTime=307,auraInstanceID=55}; iron:Update()
+    assert(iron.frame.count.text==count and iron.frame.timer.text==7)
+    assert(not iron.frame.arcs[1].bounce:IsPlaying())
+    assert(iron.frame.arcs[1].lines[1].color[2]==(count==1 and 0.5 or 1))
+end
+ironAura=nil; addon:GetSettings().ironfur.bounce=false; iron:Update()
+assert(not iron.frame.arcs[1].bounce:IsPlaying())
+addon:GetSettings().ironfur.bounce=true
+ironRestricted=true; combat=true; rageValue=SECRET; iron:Update()
+assert(iron.frame.count.text=="?" and rawequal(iron.frame.rightTimer.text,SECRET))
+assert(not iron.frame.arcs[1].bounce:IsPlaying())
+local ironItem={cooldownID=101,auraDataUnit="player",GetApplicationsFontString=function() return {GetText=function() return SECRET end} end,GetDurationFontString=function() return {GetText=function() return SECRET end} end}
+BuffIconCooldownViewer={itemFramePool={EnumerateActive=function() local done=false; return function() if not done then done=true; return ironItem end end end}}
+C_CooldownViewer.GetCooldownViewerCooldownInfo=function() return {spellID=192081} end
+iron:Update(); assert(rawequal(iron.frame.count.text,SECRET) and rawequal(iron.frame.timer.text,SECRET))
+C_CooldownViewer.GetCooldownViewerCooldownInfo=function() return {spellID=203819} end
+iron:Update(); assert(iron.frame.count.text=="?", "Ignore recycled non-Ironfur viewer")
+ironRestricted=false; ironAura={applications=SECRET,expirationTime=SECRET}; iron:Update()
+assert(rawequal(iron.frame.count.text,SECRET) and not iron.frame.arcs[1].bounce:IsPlaying())
+combat=false; rageValue=65; ironAura=nil
+addon:GetSettings().ironfur.combatOnly=true; iron:Update(); assert(not iron.frame:IsShown())
+iron:StartPreview("low"); assert(iron.frame:IsShown() and iron.frame.count.text==1)
+combat=true; iron.events.scripts.OnEvent(nil,"PLAYER_REGEN_DISABLED"); assert(not iron.preview)
+combat=false; addon:GetSettings().ironfur.combatOnly=false
+iron:StartPreview("healthy"); spec=103; iron:Update(); assert(not iron.preview and not iron.frame:IsShown())
+spec=104; dead=true; iron:Update(); assert(not iron.frame:IsShown())
+dead=false; class="DEMONHUNTER"; iron:Update(); assert(not iron.frame:IsShown())
+class="DRUID"; iron:Update(); assert(iron.frame:IsShown())
+addon:SelectSettingsModule("ironfur"); assert(settingsWindow.pages.ironfur:IsShown())
+iron:Disable(); assert(not iron.frame:IsShown() and not next(iron.events.events) and not iron.events.scripts.OnUpdate)
+local charBefore=SlashikCombatUtilsCharDB
+addon:GetSettings().ironfur.x=123
+SlashikCombatUtilsCharDB=nil
+assert(not addon:IsModuleEnabled("ironfur") and addon:GetSettings().ironfur.x==0)
+SlashikCombatUtilsCharDB=charBefore
+assert(addon:GetSettings().ironfur.x==123)
+print("PASS: Guardian Ironfur thresholds, timer/Rage layout, restrictions, recycled viewers, previews and per-character settings")

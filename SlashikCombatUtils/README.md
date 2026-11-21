@@ -279,3 +279,17 @@ Battle Ress and Lust is currently the only warband module. Adding another
 warband module requires a config entry, not a special case in `SetModuleEnabled`.
 Existing shared values are preserved; newly shared modules initialize from the
 first character loaded. Unlisted modules remain character-specific and opt-in.
+
+## Ironfur
+
+Guardian Druid only, disabled by default with per-character settings in `/scu`.
+Uses the same curved tracker as Demon Spikes: left is Ironfur remaining seconds,
+center is Ironfur stacks (0 red, 1 yellow, 2+ green), and right is Rage.
+Missing Ironfur bounces the red lines; bouncing can be disabled. Includes scale,
+center-relative position, combat-only visibility, and green/yellow/red previews.
+
+Restricted combat stack and timer values are displayed without inspecting them;
+colors become gray when the stack threshold cannot be read safely. Track Ironfur
+in Blizzard's buff viewer for restricted countdown/stack display. The center
+number is white in combat, matching the other tracker numbers. A countdown
+reflects Blizzard's Ironfur aura display, not individual stack expiration times.
