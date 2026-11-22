@@ -1,8 +1,8 @@
 # SlashikFlying
 
-Standalone Retail Skyriding HUD with switchable themes, inspired by the supplied EllesmereUI screenshot. No libraries or EllesmereUI dependency. Interface version follows SlashikRaidBreakTime (120100).
+Standalone Retail Skyriding HUD with switchable themes, inspired by the supplied EllesmereUI screenshot. No libraries or EllesmereUI dependency. Retail Interface metadata: 120105.
 
-The compact display appears while mounted with Skyriding available, including while standing on the ground. It hides on dismount and in steady-flight mode. Purple segments show Second Wind charges; blue-gray segments show vigor (Skyward Ascent charges), including recharge progress. The lower bar shows flight speed relative to base running speed. The right icon shows Whirling Surge and its cooldown. This is a status display; cast abilities using your existing action buttons/keybinds.
+The display appears whenever Skyriding is available on the current mount or shapeshift form, including Druid flight form and while standing on the ground. It hides when Skyriding is unavailable, including after dismounting or leaving flight form, on ground-only mounts, and in steady-flight mode. Purple segments show Second Wind charges; blue-gray segments show vigor (Skyward Ascent charges), including recharge progress. The lower bar shows flight speed relative to base running speed. The right icon shows Whirling Surge and its cooldown. This is a status display; cast abilities using your existing action buttons/keybinds.
 
 ## Themes
 
@@ -35,14 +35,15 @@ Settings and position are account-wide. The default position is centered, 100 UI
 Copy this folder to `_retail_/Interface/AddOns/SlashikFlying`, then restart the game or reload if already discovered. Enable Slashik Flying in the addon list.
 
 1. Mount a Skyriding mount: verify the HUD appears on the ground and updates in flight.
-2. Spend vigor, Second Wind, and Whirling Surge; verify recharge fills and cooldown.
-3. Dismount, use a ground-only mount, and switch to steady flight: verify it hides.
-4. Use `/sf unlock`, drag, `/sf lock`, and `/reload`: verify position persists.
-5. Test width, scale, enable/disable, combat visibility, and reset.
-6. Test reload while flying and entering/leaving instances.
-7. Switch themes while mounted and in preview mode. Verify native vigor artwork and cooldown framing, separate widths, shared position/scale, and persistence after `/reload`.
+2. On a Druid with Skyriding available, enter flight form: verify the HUD appears on the ground and updates in flight; leave flight form and verify it hides immediately. Repeat after `/reload` and when switching between flight form and other forms.
+3. Spend vigor, Second Wind, and Whirling Surge; verify recharge fills and cooldown.
+4. Dismount, use a ground-only mount or non-flying form, and switch to steady flight on a mount or in flight form: verify it hides with preview off and the display locked. Switch back to Skyriding and verify it returns.
+5. Use `/sf unlock`, drag, `/sf lock`, and `/reload`: verify position persists.
+6. Verify enable/disable and combat visibility still apply on both a Skyriding mount and in Druid flight form. Test width, scale, preview, unlock, and reset; confirm existing theme, position, scale, and map-highlight settings remain unchanged by form changes.
+7. Test reload while flying and entering/leaving instances.
+8. Switch themes while mounted, in Druid flight form, and in preview mode. Verify native vigor artwork and cooldown framing, separate widths, shared position/scale, and persistence after `/reload`.
 
-Restricted spell values are displayed as unavailable/empty rather than used in unsafe arithmetic. Actual client rendering and mount behavior require the in-game checks above.
+Restricted spell values are displayed as unavailable/empty rather than used in unsafe arithmetic. Actual client rendering and mount/form behavior require the in-game checks above.
 
 API reference: Blizzard's generated spell API documentation, mirrored at https://github.com/Gethe/wow-ui-source/blob/live/Interface/AddOns/Blizzard_APIDocumentationGenerated/SpellSharedDocumentation.lua .
 

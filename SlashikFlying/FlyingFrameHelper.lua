@@ -170,11 +170,12 @@ function ns.CreateFlyingFrame()
         elapsed = elapsed + dt
         if elapsed >= 0.05 then elapsed = 0; self:Refresh() end
     end)
-    -- Hidden frames do not run OnUpdate, so dismounted characters do no polling.
+    -- Hidden frames do not run OnUpdate, so characters without Skyriding do no polling.
     function frame:UpdateVisibility()
         local s = ns.GetSettings()
         local _, canGlide = C_PlayerInfo.GetGlidingInfo()
-        local visible = s.enabled and ((IsMounted() and canGlide == true) or self.preview or self.unlocked)
+        -- Capability includes Skyriding shapeshift forms, even while on the ground.
+        local visible = s.enabled and (canGlide == true or self.preview or self.unlocked)
         if s.hideInCombat and UnitAffectingCombat("player") then visible = false end
         self:SetShown(visible == true)
         if visible then self:Refresh() end
