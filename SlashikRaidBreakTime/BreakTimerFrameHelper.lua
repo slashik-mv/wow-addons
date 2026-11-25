@@ -1,5 +1,6 @@
 function createRaidBreakTimeFrame()
     local images = SlashikRaidBreakTimeImages
+    local messages = SlashikRaidBreakTimeMessages
     local frame = CreateFrame("Frame", "SlashikRaidBreakTimeFrame", UIParent, "BackdropTemplate")
     frame:SetSize(500, 270)
     frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
@@ -24,6 +25,11 @@ function createRaidBreakTimeFrame()
     frame.hint:SetPoint("TOPLEFT", frame.timer, "BOTTOMLEFT", 3, -18)
     frame.hint:SetText("Enjoy the break!")
 
+    frame.message = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    frame.message:SetPoint("TOPLEFT", frame.hint, "BOTTOMLEFT", 0, -18)
+    frame.message:SetWidth(190)
+    frame.message:SetJustifyH("LEFT")
+
     frame:SetMovable(true)
     frame:EnableMouse(true)
     frame:RegisterForDrag("LeftButton")
@@ -36,6 +42,12 @@ function createRaidBreakTimeFrame()
     local nextImageChangeTime = 0
     local usedImageIndices = {}
     local hasPlayedOneMinuteWarning = false
+
+    local function updateArtwork(imageIndex)
+        local _, imagePath = getRandomPicture(nil, imageIndex)
+        frame.art:SetTexture(imagePath)
+        frame.message:SetText(#messages > 0 and messages[math.random(#messages)] or "")
+    end
 
     local function restoreUsedImageIndices(savedUsedImageIndices)
         local restoredImageIndices = {}
@@ -89,8 +101,7 @@ function createRaidBreakTimeFrame()
 
         breakEndTime = GetTime() + seconds
         nextImageChangeAt = scheduleNextImageChange(nextImageChangeAt)
-        local _, imagePath = getRandomPicture(nil, currentImageIndex)
-        self.art:SetTexture(imagePath)
+        updateArtwork(currentImageIndex)
         SlashikRaidBreakTimeDB.activeBreak = {
             endAt = GetServerTime() + seconds,
             imageIndex = currentImageIndex,
@@ -138,8 +149,7 @@ function createRaidBreakTimeFrame()
         currentImageIndex = nextImageIndex
         usedImageIndices[currentImageIndex] = true
         local nextImageChangeAt = scheduleNextImageChange()
-        local _, imagePath = getRandomPicture(nil, currentImageIndex)
-        self.art:SetTexture(imagePath)
+        updateArtwork(currentImageIndex)
 
         local activeBreak = SlashikRaidBreakTimeDB and SlashikRaidBreakTimeDB.activeBreak
         if activeBreak then
